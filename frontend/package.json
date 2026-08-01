@@ -1,0 +1,11 @@
+{
+  "name": "zhuatech-vms-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "description": "知华科技 VMS 访客预约与通行管理平台社区源码版前端",
+  "author": "上海如静知华信息科技有限公司",
+  "license": "SEE LICENSE IN LICENSE",
+  "scripts": {"dev":"vite","build":"vite build","preview":"vite preview"},
+  "dependencies": {"vue":"^3.5.18"},
+  "devDependencies": {"@vitejs/plugin-vue":"^6.0.1","vite":"^7.0.6"}
+}

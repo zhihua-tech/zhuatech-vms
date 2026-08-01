@@ -1,0 +1,20 @@
+# Copyright 2026 上海如静知华信息科技有限公司
+spring:
+  application:
+    name: zhuatech-vms
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/zhuatech_vms?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false}
+    username: ${DB_USERNAME:zhuatech}
+    password: ${DB_PASSWORD:zhuatech_dev_password}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate.jdbc.time_zone: Asia/Shanghai
+server:
+  port: ${SERVER_PORT:8080}
+app:
+  security:
+    admin-password: ${ADMIN_PASSWORD:admin123}
+    operator-password: ${OPERATOR_PASSWORD:operator123}

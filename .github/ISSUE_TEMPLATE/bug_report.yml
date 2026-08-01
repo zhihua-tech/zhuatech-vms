@@ -1,0 +1,24 @@
+name: 缺陷报告
+description: 报告可复现的软件问题（请勿提交真实业务数据或敏感信息）
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: 感谢反馈。提交内容受知华科技社区规范约束，仅限个人非商业学习交流。
+  - type: input
+    id: version
+    attributes: {label: 版本或提交, placeholder: v1.0.0 / commit SHA}
+    validations: {required: true}
+  - type: dropdown
+    id: area
+    attributes: {label: 影响范围, options: [Java 后端, Vue 管理端, H5 工作台, Docker 部署, 文档]}
+    validations: {required: true}
+  - type: textarea
+    id: steps
+    attributes: {label: 复现步骤, description: 请使用脱敏后的演示数据。}
+    validations: {required: true}
+  - type: textarea
+    id: expected
+    attributes: {label: 预期与实际结果}
+    validations: {required: true}
