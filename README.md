@@ -58,3 +58,7 @@ curl -u admin:admin123 -H 'Content-Type: application/json' \
 </p>
 
 关键词：知华科技 VMS、访客管理系统、访客预约、园区门禁、访客通行码、Java 访客系统、Vue 访客管理、上海软件开发。
+
+## 应急疏散访客清点
+
+新增 `POST /api/vms/insights/evacuation-accountability`，根据已入场、已离场、集合点签到和接待人确认人数计算在场及未清点访客，输出 `CLEAR / RECONCILE / LOCATE_NOW`。紧急状态下可直接生成联系接待人、核对最后门禁位置和现场查找动作。
