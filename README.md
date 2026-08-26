@@ -19,13 +19,27 @@ ZhuaTech VMS 将预约提交、接待人审批、身份核验、通行授权、�
 
 <p align="center"><em>移动端：预约、签到、通行码和接待提醒的专业 H5 工作台</em></p>
 
-### 已实现内容
+## 已实现模块
 
-- Spring Boot 4、Java 21、Spring Security、JPA 和 MySQL 后端。
-- Vue 3、Vite 管理端与响应式移动端。
-- 运营总览、预约事项、接待协同和演示数据。
-- `POST /api/admin/visit-risk` 访客准入规则，输出 `APPROVE / MANUAL_REVIEW / REJECT`。
-- Docker Compose、自动化测试、API/架构文档和社区协作规范。
+| 模块 | 用户能力 |
+| --- | --- |
+| 运营总览 | 今日预约、待审批、在园访客、待处理预警、流程进度和最近预约 |
+| 业务协同 | 新建与修改预约、审批、驳回、取消、签到、通行码和离场闭环 |
+| 资源中心 | 访客档案、身份核验状态、来访记录、黑名单、接待人、区域和门禁点 |
+| 风险预警 | 准入风险判断、异常上报、处置留痕、超时未离场和应急疏散清点 |
+| 基础设置 | 园区、审批方式、通行时段、消息渠道、数据留存和账号权限 |
+| 移动工作台 | 发起预约、访客签到、通行码、异常上报、接待待办和提醒 |
+
+后端采用 Spring Boot 4、Java 21、Spring Security、JPA 和 MySQL；前端采用 Vue 3、Vite，并同时提供管理端和响应式 H5。状态流转会校验操作顺序，例如“待审批”不能直接签到，“已审批”不能直接离场。
+
+![VMS 预约与接待协同](docs/images/vms-appointment-workflow.png)
+
+![VMS 风险预警与异常处置](docs/images/vms-risk-alerts.png)
+
+### 产品使用手册
+
+- [ZhuaTech VMS 产品使用手册 V1.1（Word）](docs/知华科技-ZhuaTech-VMS-产品使用手册-V1.1.docx)
+- [ZhuaTech VMS 产品使用手册 V1.1（PDF）](output/pdf/知华科技-ZhuaTech-VMS-产品使用手册-V1.1.pdf)
 
 ### 快速体验
 
@@ -42,7 +56,7 @@ curl -u admin:admin123 -H 'Content-Type: application/json' \
   http://localhost:8080/api/admin/visit-risk
 ```
 
-更多信息参见 [API](docs/API.md)、[架构](docs/ARCHITECTURE.md) 和 [安全政策](SECURITY.md)。
+更多信息参见 [API](docs/API.md)、[架构](docs/ARCHITECTURE.md) 和 [安全政策](SECURITY.md)。身份证件核验、真实闸机门禁、访客机、企业微信和短信属于预留集成能力，社区源码版未连接第三方商业服务。
 
 ## 许可边界
 

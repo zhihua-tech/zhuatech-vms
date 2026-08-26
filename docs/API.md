@@ -9,7 +9,30 @@ Base URL：`http://localhost:8080/api`。除公开信息外均使用 HTTP Basic 
 | GET | `/workspace/tasks` | OPERATOR | 用户工作台数据 |
 | POST | `/admin/risk-assessment` | ADMIN | 运营风险评估 |
 | POST | `/admin/visit-risk` | ADMIN | 访客准入风险判断与管控措施 |
+| GET | `/vms/overview` | OPERATOR | 预约、在园访客和预警汇总 |
+| GET | `/vms/appointments` | OPERATOR | 预约列表 |
+| POST | `/vms/appointments` | OPERATOR | 新建预约 |
+| PUT | `/vms/appointments/{id}` | OPERATOR | 修改待审批或已驳回预约 |
+| POST | `/vms/appointments/{id}/actions` | OPERATOR | 审批、驳回、取消、签到或离场 |
+| GET | `/vms/visitors` | OPERATOR | 访客档案列表 |
+| POST | `/admin/vms/visitors/{id}/blacklist` | ADMIN | 加入或解除黑名单 |
+| GET | `/vms/resources` | OPERATOR | 接待人、访问区域和门禁点 |
+| GET | `/vms/alerts` | OPERATOR | 风险预警列表 |
+| POST | `/vms/alerts` | OPERATOR | 上报异常 |
+| POST | `/vms/alerts/{id}/resolve` | OPERATOR | 完成预警处置并留痕 |
+| GET | `/admin/vms/settings` | ADMIN | 读取基础设置 |
+| PUT | `/admin/vms/settings` | ADMIN | 更新园区、审批、通行、通知和留存设置 |
 
 风险评估请求包含 `backlog`、`delayedItems`、`criticalItems`、`capacityUtilization`、`dataCompleteness`，均为非负整数；百分比字段范围为 0–100。
 
 访客准入请求覆盖到访人数、夜间访问、受限区域、接待人确认、实名核验和黑名单命中，返回 `APPROVE`、`MANUAL_REVIEW` 或 `REJECT`。
+
+预约操作请求示例：
+
+```json
+{"action":"APPROVE","remark":"接待人已确认"}
+```
+
+支持的 `action` 为 `APPROVE`、`REJECT`、`CANCEL`、`CHECK_IN` 和 `CHECK_OUT`。服务端校验状态顺序，非法流转返回 HTTP 409。
+
+> 上海如静知华信息科技有限公司 · [https://www.zhuatech.cn/](https://www.zhuatech.cn/)

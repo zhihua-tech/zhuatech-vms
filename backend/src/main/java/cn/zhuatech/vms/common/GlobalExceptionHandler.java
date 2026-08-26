@@ -2,6 +2,7 @@
 package cn.zhuatech.vms.common;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -13,5 +14,11 @@ public class GlobalExceptionHandler {
         var fieldError = exception.getBindingResult().getFieldErrors().stream().findFirst();
         var message = fieldError.map(error -> error.getField() + ": " + error.getDefaultMessage()).orElse("请求参数不合法");
         return ResponseEntity.badRequest().body(ApiResponse.error(message));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    ResponseEntity<ApiResponse<Void>> business(ResponseStatusException exception) {
+        return ResponseEntity.status(exception.getStatusCode())
+            .body(ApiResponse.error(exception.getReason() == null ? "业务操作失败" : exception.getReason()));
     }
 }
