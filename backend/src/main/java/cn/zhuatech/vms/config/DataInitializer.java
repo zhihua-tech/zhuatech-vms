@@ -7,10 +7,12 @@ import cn.zhuatech.vms.repository.WorkItemRepository;
 import cn.zhuatech.vms.model.Appointment;
 import cn.zhuatech.vms.model.RiskAlert;
 import cn.zhuatech.vms.model.SiteResource;
+import cn.zhuatech.vms.model.SystemSetting;
 import cn.zhuatech.vms.model.VisitorProfile;
 import cn.zhuatech.vms.repository.AppointmentRepository;
 import cn.zhuatech.vms.repository.RiskAlertRepository;
 import cn.zhuatech.vms.repository.SiteResourceRepository;
+import cn.zhuatech.vms.repository.SystemSettingRepository;
 import cn.zhuatech.vms.repository.VisitorProfileRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -33,7 +35,8 @@ public class DataInitializer {
 
     @Bean
     CommandLineRunner seedVms(AppointmentRepository appointments, VisitorProfileRepository visitors,
-                              SiteResourceRepository resources, RiskAlertRepository alerts) {
+                              SiteResourceRepository resources, RiskAlertRepository alerts,
+                              SystemSettingRepository settings) {
         return args -> {
             if (appointments.count() == 0) {
                 appointments.saveAll(java.util.List.of(
@@ -68,6 +71,14 @@ public class DataInitializer {
                         "VMS-20260826-103", "待处理", "园区安保中心"),
                     new RiskAlert("ALT-20260826-02", "资料待补充", "中", "设备维保预约缺少施工人员附件",
                         "VMS-20260826-101", "待处理", "行政接待组")));
+            }
+            if (settings.count() == 0) {
+                settings.saveAll(java.util.List.of(
+                    new SystemSetting("siteName", "上海创新园区"),
+                    new SystemSetting("approvalMode", "接待人审批 + 安保复核"),
+                    new SystemSetting("passValidity", "预约时段前后 30 分钟"),
+                    new SystemSetting("retentionDays", "180"),
+                    new SystemSetting("notificationChannel", "站内消息")));
             }
         };
     }

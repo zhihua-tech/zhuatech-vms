@@ -7,5 +7,6 @@ import java.util.Optional;
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
     List<Appointment> findAllByOrderByUpdatedAtDesc();
     Optional<Appointment> findByAppointmentNo(String appointmentNo);
+    Optional<Appointment> findByPassCode(String passCode);
     long countByStatus(String status);
 }

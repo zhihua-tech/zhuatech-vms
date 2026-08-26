@@ -2,6 +2,7 @@
 package cn.zhuatech.vms.controller;
 
 import cn.zhuatech.vms.common.ApiResponse;
+import cn.zhuatech.vms.model.AuditLog;
 import cn.zhuatech.vms.model.Appointment;
 import cn.zhuatech.vms.model.RiskAlert;
 import cn.zhuatech.vms.model.SiteResource;
@@ -42,6 +43,12 @@ public class VmsManagementController {
         return ApiResponse.ok(service.action(id, request));
     }
 
+    @PostMapping("/vms/passes/verify")
+    ApiResponse<VmsManagementService.PassVerification> verifyPass(
+        @Valid @RequestBody VmsManagementService.PassRequest request) {
+        return ApiResponse.ok(service.verifyPass(request));
+    }
+
     @GetMapping("/vms/visitors")
     ApiResponse<List<VisitorProfile>> visitors() { return ApiResponse.ok(service.listVisitors()); }
 
@@ -51,8 +58,31 @@ public class VmsManagementController {
         return ApiResponse.ok(service.setBlacklist(id, request));
     }
 
+    @PostMapping("/vms/visitors/{id}/identity")
+    ApiResponse<VisitorProfile> verifyIdentity(@PathVariable Long id,
+        @Valid @RequestBody VmsManagementService.IdentityRequest request) {
+        return ApiResponse.ok(service.verifyIdentity(id, request));
+    }
+
     @GetMapping("/vms/resources")
     ApiResponse<List<SiteResource>> resources() { return ApiResponse.ok(service.listResources()); }
+
+    @PostMapping("/admin/vms/resources")
+    ApiResponse<SiteResource> createResource(@Valid @RequestBody VmsManagementService.ResourceRequest request) {
+        return ApiResponse.ok(service.createResource(request));
+    }
+
+    @PutMapping("/admin/vms/resources/{id}")
+    ApiResponse<SiteResource> updateResource(@PathVariable Long id,
+        @Valid @RequestBody VmsManagementService.ResourceRequest request) {
+        return ApiResponse.ok(service.updateResource(id, request));
+    }
+
+    @DeleteMapping("/admin/vms/resources/{id}")
+    ApiResponse<Void> deleteResource(@PathVariable Long id) {
+        service.deleteResource(id);
+        return ApiResponse.ok(null);
+    }
 
     @GetMapping("/vms/alerts")
     ApiResponse<List<RiskAlert>> alerts() { return ApiResponse.ok(service.listAlerts()); }
@@ -76,4 +106,10 @@ public class VmsManagementController {
         @Valid @RequestBody VmsManagementService.SettingsRequest request) {
         return ApiResponse.ok(service.updateSettings(request));
     }
+
+    @GetMapping("/admin/vms/reports/operations")
+    ApiResponse<VmsManagementService.OperationsReport> report() { return ApiResponse.ok(service.report()); }
+
+    @GetMapping("/admin/vms/audit-logs")
+    ApiResponse<List<AuditLog>> auditLogs() { return ApiResponse.ok(service.auditLogs()); }
 }

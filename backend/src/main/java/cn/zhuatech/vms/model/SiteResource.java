@@ -23,6 +23,9 @@ public class SiteResource {
     public SiteResource(String type, String code, String name, String department, String status) {
         this.type = type; this.code = code; this.name = name; this.department = department; this.status = status;
     }
+    public void update(String type, String name, String department, String status) {
+        this.type = type; this.name = name; this.department = department; this.status = status;
+    }
     public Long getId() { return id; }
     public String getType() { return type; }
     public String getCode() { return code; }

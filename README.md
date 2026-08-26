@@ -27,6 +27,7 @@ ZhuaTech VMS 将预约提交、接待人审批、身份核验、通行授权、�
 | 业务协同 | 新建与修改预约、审批、驳回、取消、签到、通行码和离场闭环 |
 | 资源中心 | 访客档案、身份核验状态、来访记录、黑名单、接待人、区域和门禁点 |
 | 风险预警 | 准入风险判断、异常上报、处置留痕、超时未离场和应急疏散清点 |
+| 运营审计 | 预约状态报表、档案风险、资源可用率和最近关键操作追溯 |
 | 基础设置 | 园区、审批方式、通行时段、消息渠道、数据留存和账号权限 |
 | 移动工作台 | 发起预约、访客签到、通行码、异常上报、接待待办和提醒 |
 
@@ -36,10 +37,12 @@ ZhuaTech VMS 将预约提交、接待人审批、身份核验、通行授权、�
 
 ![VMS 风险预警与异常处置](docs/images/vms-risk-alerts.png)
 
+![VMS 运营报表与操作审计](docs/images/vms-audit-report.png)
+
 ### 产品使用手册
 
-- [ZhuaTech VMS 产品使用手册 V1.1（Word）](docs/知华科技-ZhuaTech-VMS-产品使用手册-V1.1.docx)
-- [ZhuaTech VMS 产品使用手册 V1.1（PDF）](output/pdf/知华科技-ZhuaTech-VMS-产品使用手册-V1.1.pdf)
+- [ZhuaTech VMS 产品使用手册 V1.2（Word）](docs/知华科技-ZhuaTech-VMS-产品使用手册-V1.2.docx)
+- [ZhuaTech VMS 产品使用手册 V1.2（PDF）](output/pdf/知华科技-ZhuaTech-VMS-产品使用手册-V1.2.pdf)
 
 ### 快速体验
 

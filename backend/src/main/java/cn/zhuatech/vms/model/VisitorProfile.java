@@ -38,6 +38,8 @@ public class VisitorProfile {
         this.note = note;
     }
     public void setBlacklisted(boolean blacklisted, String note) { this.blacklisted = blacklisted; this.note = note; }
+    public void verifyIdentity(boolean verified, String note) { this.identityVerified = verified; this.note = note; }
+    public void recordVisit() { this.visitCount++; this.lastVisitAt = LocalDateTime.now(); }
     public Long getId() { return id; }
     public String getVisitorName() { return visitorName; }
     public String getCompany() { return company; }
