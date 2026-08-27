@@ -247,4 +247,62 @@ class VmsApiIntegrationTests {
             .andExpect(jsonPath("$.data.riskLevel").value("关注"))
             .andExpect(jsonPath("$.data.approvalStage").value("接待人审批"));
     }
+
+    @Test void enterpriseFieldOperationsPreventPassbackAndCloseTheBadgeLifecycle() throws Exception {
+        var created = mvc.perform(post("/api/vms/appointments").with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                    {"visitorName":"现场通行测试访客","visitorCompany":"知华测试伙伴","visitorPhone":"13812340007",
+                    "hostName":"王诚","purpose":"现场执行闭环测试","visitDate":"2026-09-08",
+                    "timeSlot":"09:00-11:00","accessArea":"A座会议中心","visitorCount":1,
+                    "clientRequestId":"TEST-FIELD-001","siteCode":"SH-HQ"}
+                    """))
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        var idMatcher = java.util.regex.Pattern.compile("\\\"id\\\":(\\d+)").matcher(created);
+        var noMatcher = java.util.regex.Pattern.compile("\\\"appointmentNo\\\":\\\"([^\\\"]+)").matcher(created);
+        org.junit.jupiter.api.Assertions.assertTrue(idMatcher.find());
+        org.junit.jupiter.api.Assertions.assertTrue(noMatcher.find());
+        long id = Long.parseLong(idMatcher.group(1));
+        String appointmentNo = noMatcher.group(1);
+
+        mvc.perform(post("/api/vms/appointments/{id}/actions", id).with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"APPROVE\",\"remark\":\"准入审批通过\"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("已审批"));
+        mvc.perform(post("/api/vms/appointments/{id}/badges", id).with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"badgeNo\":\"BG-SH-0002\"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("已发放"))
+            .andExpect(jsonPath("$.data.appointmentNo").value(appointmentNo));
+
+        String inbound = "{\"appointmentNo\":\"" + appointmentNo + "\",\"gateCode\":\"GATE-01\",\"direction\":\"IN\"}";
+        mvc.perform(post("/api/vms/access-events").with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content(inbound))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.allowed").value(true))
+            .andExpect(jsonPath("$.data.appointment.status").value("已到访"));
+        mvc.perform(post("/api/vms/access-events").with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content(inbound))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.allowed").value(false))
+            .andExpect(jsonPath("$.data.message").value(org.hamcrest.Matchers.containsString("防重复入场")));
+
+        String outbound = "{\"appointmentNo\":\"" + appointmentNo + "\",\"gateCode\":\"GATE-01\",\"direction\":\"OUT\"}";
+        mvc.perform(post("/api/vms/access-events").with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content(outbound))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.allowed").value(true))
+            .andExpect(jsonPath("$.data.appointment.status").value("已离场"));
+        mvc.perform(post("/api/vms/access-events").with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content(outbound))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.allowed").value(false))
+            .andExpect(jsonPath("$.data.message").value(org.hamcrest.Matchers.containsString("防重复离场")));
+
+        mvc.perform(get("/api/vms/badges").with(httpBasic("operator", "operator123")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data[?(@.badgeNo == 'BG-SH-0002')].status").value("可用"));
+        mvc.perform(get("/api/vms/access-events").with(httpBasic("operator", "operator123")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(org.hamcrest.Matchers.greaterThanOrEqualTo(4)));
+        mvc.perform(post("/api/admin/vms/notifications/dispatch").with(httpBasic("admin", "admin123")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.sent").value(org.hamcrest.Matchers.greaterThan(0)));
+        mvc.perform(get("/api/admin/vms/field-dashboard").with(httpBasic("admin", "admin123")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.deniedAccessEvents").value(org.hamcrest.Matchers.greaterThanOrEqualTo(2)));
+        mvc.perform(get("/api/admin/vms/compliance/retention-preview").with(httpBasic("admin", "admin123")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.action").value(org.hamcrest.Matchers.containsString("不自动删除")));
+        mvc.perform(get("/api/admin/vms/field-dashboard").with(httpBasic("operator", "operator123")))
+            .andExpect(status().isForbidden());
+    }
 }

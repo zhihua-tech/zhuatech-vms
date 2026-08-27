@@ -33,6 +33,16 @@ Base URL：`http://localhost:8080/api`。除公开信息外均使用 HTTP Basic 
 | GET | `/admin/vms/audit-logs` | ADMIN | 最近 100 条关键操作审计日志 |
 | GET | `/admin/vms/enterprise/approval-board` | ADMIN | 审批待办、超时、安保复核和高风险看板 |
 | POST | `/admin/vms/enterprise/overstay-inspections` | ADMIN | 执行在园超时巡检并生成风险预警 |
+| GET | `/vms/badges` | OPERATOR | 查询访客证库存、领用和挂失状态 |
+| POST | `/vms/appointments/{id}/badges` | OPERATOR | 为已审批或已到访预约发放访客证 |
+| POST | `/vms/badges/{id}/actions` | OPERATOR | 归还或挂失访客证 |
+| GET | `/vms/access-events` | OPERATOR | 查询最近 100 条门禁通行事件 |
+| POST | `/vms/access-events` | OPERATOR | 上报入场/离场事件并执行实时准入判断 |
+| GET | `/admin/vms/field-dashboard` | ADMIN | 访客证、拒绝通行和通知异常指标 |
+| GET | `/admin/vms/notifications` | ADMIN | 查询最近 100 条可靠通知任务 |
+| POST | `/admin/vms/notifications/dispatch` | ADMIN | 执行待发送及到期失败通知派发 |
+| POST | `/admin/vms/notifications/{id}/retry` | ADMIN | 将失败通知置为立即重试 |
+| GET | `/admin/vms/compliance/retention-preview` | ADMIN | 按留存策略预检超期数据影响范围 |
 
 风险评估请求包含 `backlog`、`delayedItems`、`criticalItems`、`capacityUtilization`、`dataCompleteness`，均为非负整数；百分比字段范围为 0–100。
 
@@ -59,5 +69,13 @@ Base URL：`http://localhost:8080/api`。除公开信息外均使用 HTTP Basic 
 ```
 
 身份核验请求通过 `verified` 控制核验状态；资源请求需提供唯一 `resourceCode`、资源名称、类型、位置和状态。设置数据已持久化到数据库，服务重启后不会恢复为演示默认值。关键预约流转、访客风控、身份核验、资源变更、预警处置和设置修改会写入审计日志。
+
+门禁控制器或边缘网关可使用预约编号上报事件。`direction` 仅允许 `IN` 或 `OUT`；接口始终返回结构化准入决策，拒绝事件同样持久化，便于识别重复进出和名单冻结：
+
+```json
+{"appointmentNo":"VMS-20260826-102","gateCode":"GATE-01","direction":"IN"}
+```
+
+访客证操作的 `action` 支持 `RETURN` 与 `REPORT_LOST`。通知任务采用应用内 outbox 基线：站内消息可本地完成派发，外部通道未配置时保留失败原因、尝试次数和下次重试时间，部署方可替换为企业微信、短信或自有消息适配器。
 
 > 上海如静知华信息科技有限公司 · [https://www.zhuatech.cn/](https://www.zhuatech.cn/)

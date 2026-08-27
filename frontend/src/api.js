@@ -34,5 +34,15 @@ export const api = {
   auditLogs: () => request('/api/admin/vms/audit-logs'),
   approvalTasks: () => request('/api/vms/approval-tasks'),
   approvalBoard: () => request('/api/admin/vms/enterprise/approval-board'),
-  inspectOverstay: () => request('/api/admin/vms/enterprise/overstay-inspections', { method: 'POST' })
+  inspectOverstay: () => request('/api/admin/vms/enterprise/overstay-inspections', { method: 'POST' }),
+  badges: () => request('/api/vms/badges'),
+  issueBadge: (appointmentId, badgeNo) => request(`/api/vms/appointments/${appointmentId}/badges`, { method: 'POST', body: JSON.stringify({ badgeNo }) }),
+  badgeAction: (id, action, remark) => request(`/api/vms/badges/${id}/actions`, { method: 'POST', body: JSON.stringify({ action, remark }) }),
+  accessEvents: () => request('/api/vms/access-events'),
+  recordAccess: payload => request('/api/vms/access-events', { method: 'POST', body: JSON.stringify(payload) }),
+  fieldDashboard: () => request('/api/admin/vms/field-dashboard'),
+  notifications: () => request('/api/admin/vms/notifications'),
+  dispatchNotifications: () => request('/api/admin/vms/notifications/dispatch', { method: 'POST' }),
+  retryNotification: id => request(`/api/admin/vms/notifications/${id}/retry`, { method: 'POST' }),
+  retentionPreview: () => request('/api/admin/vms/compliance/retention-preview')
 }

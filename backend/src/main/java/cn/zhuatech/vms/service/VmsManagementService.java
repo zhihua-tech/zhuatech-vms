@@ -30,11 +30,12 @@ public class VmsManagementService {
     private final SystemSettingRepository settingRepository;
     private final AuditLogRepository auditLogs;
     private final ApprovalTaskRepository approvalTasks;
+    private final NotificationTaskRepository notificationTasks;
 
     public VmsManagementService(AppointmentRepository appointments, VisitorProfileRepository visitors,
                                 SiteResourceRepository resources, RiskAlertRepository alerts,
                                 SystemSettingRepository settingRepository, AuditLogRepository auditLogs,
-                                ApprovalTaskRepository approvalTasks) {
+                                ApprovalTaskRepository approvalTasks, NotificationTaskRepository notificationTasks) {
         this.appointments = appointments;
         this.visitors = visitors;
         this.resources = resources;
@@ -42,6 +43,7 @@ public class VmsManagementService {
         this.settingRepository = settingRepository;
         this.auditLogs = auditLogs;
         this.approvalTasks = approvalTasks;
+        this.notificationTasks = notificationTasks;
     }
 
     public Overview overview() {
@@ -70,6 +72,7 @@ public class VmsManagementService {
         appointment.applyEnterpriseContext(request.siteCode(), request.clientRequestId());
         appointment = appointments.save(appointment);
         createApprovalTask(appointment, "接待人审批", request.hostName());
+        queueNotification(appointment.getAppointmentNo(), request.hostName(), "预约待审批");
         visitors.findByPhone(request.visitorPhone()).orElseGet(() -> visitors.save(new VisitorProfile(
             request.visitorName(), request.visitorCompany(), request.visitorPhone(), false, false, 0, null, "预约自动建档")));
         audit("预约管理", "创建预约", no, request.visitorName() + " / " + request.purpose());
@@ -101,6 +104,7 @@ public class VmsManagementService {
         appointment.transition("待审批");
         appointment.moveApprovalStage("接待人审批");
         createApprovalTask(appointment, "接待人审批", request.hostName());
+        queueNotification(appointment.getAppointmentNo(), request.hostName(), "预约重新送审");
         audit("预约管理", "修改预约", appointment.getAppointmentNo(), request.purpose());
         return appointment;
     }
@@ -126,6 +130,16 @@ public class VmsManagementService {
             case "CHECK_OUT" -> { requireStatus(appointment, "已到访"); appointment.checkOut(); }
             default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "不支持的预约操作");
         }
+        if ("APPROVE".equals(request.action()) && "安保复核".equals(appointment.getStatus()))
+            queueNotification(appointment.getAppointmentNo(), "园区安保中心", "安保复核待办");
+        else if ("APPROVE".equals(request.action()))
+            queueNotification(appointment.getAppointmentNo(), appointment.getVisitorPhone(), "预约审批通过");
+        else if ("REJECT".equals(request.action()))
+            queueNotification(appointment.getAppointmentNo(), appointment.getVisitorPhone(), "预约审批驳回");
+        else if ("CHECK_IN".equals(request.action()))
+            queueNotification(appointment.getAppointmentNo(), appointment.getHostName(), "访客已到访");
+        else if ("CHECK_OUT".equals(request.action()))
+            queueNotification(appointment.getAppointmentNo(), appointment.getVisitorPhone(), "访客已离场");
         audit("预约管理", request.action(), appointment.getAppointmentNo(), safeRemark(request.remark()));
         return appointment;
     }
@@ -280,6 +294,11 @@ public class VmsManagementService {
         SystemSetting setting = settingRepository.findById(key).orElseGet(() -> new SystemSetting(key, value));
         setting.changeValue(value);
         settingRepository.save(setting);
+    }
+    private void queueNotification(String referenceNo, String recipient, String templateCode) {
+        String channel = settingRepository.findById("notificationChannel")
+            .map(SystemSetting::getValue).orElse("站内消息");
+        notificationTasks.save(new NotificationTask(referenceNo, channel, recipient, templateCode));
     }
     private void enforceCapacity(AppointmentRequest request) {
         long occupied = appointments.activeVisitorCount(request.visitDate(), request.timeSlot(),

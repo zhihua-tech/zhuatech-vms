@@ -7,6 +7,7 @@ import { domain } from './domain'
 const mode = ref('admin')
 const active = ref('运营总览')
 const resourceTab = ref('访客档案')
+const enterpriseTab = ref('审批治理')
 const statusFilter = ref('全部状态')
 const search = ref('')
 const loading = ref(false)
@@ -20,7 +21,12 @@ const resources = ref([...domain.resources])
 const alerts = ref([...domain.alerts])
 const auditLogs = ref([])
 const approvalTasks = ref([])
+const badges = ref([])
+const accessEvents = ref([])
+const notifications = ref([])
 const approvalBoard = reactive({ pending: 0, overdue: 0, securityReview: 0, highRisk: 0, recentTasks: [] })
+const fieldDashboard = reactive({ availableBadges: 0, issuedBadges: 0, lostBadges: 0, deniedAccessEvents: 0, pendingNotifications: 0, failedNotifications: 0 })
+const retentionPreview = reactive({ retentionDays: 180, threshold: '', visitorProfiles: 0, auditLogs: 0, action: '' })
 const report = reactive({ totalAppointments: 0, appointmentStatus: {}, totalVisitors: 0, unverifiedVisitors: 0, blacklistedVisitors: 0, totalAlerts: 0, openAlerts: 0, totalResources: 0, availableResources: 0 })
 const settings = reactive({ ...domain.settings })
 const nav = [
@@ -33,6 +39,8 @@ const exceptionForm = reactive({ type: '现场异常', level: '中', title: '', 
 const resourceForm = reactive({ id: null, type: '接待人', code: '', name: '', department: '', status: '启用' })
 const passCredential = ref('VMS-20260826-102')
 const passVerification = ref(null)
+const accessForm = reactive({ appointmentNo: 'VMS-20260826-102', gateCode: 'GATE-01', direction: 'IN' })
+const accessDecision = ref(null)
 
 const metrics = computed(() => [
   { label: '今日预约', value: appointments.value.length, unit: '单', note: '全部预约' },
@@ -59,7 +67,7 @@ function localAction(item, action) {
 }
 async function loadData() {
   loading.value = true
-  const calls = await Promise.allSettled([api.appointments(), api.visitors(), api.resources(), api.alerts(), api.settings(), api.report(), api.auditLogs(), api.approvalTasks(), api.approvalBoard()])
+  const calls = await Promise.allSettled([api.appointments(), api.visitors(), api.resources(), api.alerts(), api.settings(), api.report(), api.auditLogs(), api.approvalTasks(), api.approvalBoard(), api.badges(), api.accessEvents(), api.fieldDashboard(), api.notifications(), api.retentionPreview()])
   if (calls[0].status === 'fulfilled') appointments.value = calls[0].value
   if (calls[1].status === 'fulfilled') visitors.value = calls[1].value
   if (calls[2].status === 'fulfilled') resources.value = calls[2].value
@@ -69,6 +77,11 @@ async function loadData() {
   if (calls[6].status === 'fulfilled') auditLogs.value = calls[6].value
   if (calls[7].status === 'fulfilled') approvalTasks.value = calls[7].value
   if (calls[8].status === 'fulfilled') Object.assign(approvalBoard, calls[8].value)
+  if (calls[9].status === 'fulfilled') badges.value = calls[9].value
+  if (calls[10].status === 'fulfilled') accessEvents.value = calls[10].value
+  if (calls[11].status === 'fulfilled') Object.assign(fieldDashboard, calls[11].value)
+  if (calls[12].status === 'fulfilled') notifications.value = calls[12].value
+  if (calls[13].status === 'fulfilled') Object.assign(retentionPreview, calls[13].value)
   loading.value = false
 }
 function openAppointment(item) { selected.value = item; modal.value = 'detail' }
@@ -152,6 +165,41 @@ async function runOverstayInspection() {
     announce(`巡检完成：检查 ${result.inspected} 条在园记录，新增 ${result.alertsGenerated} 条预警`)
   } catch (error) { announce(error.message) }
 }
+async function issueAvailableBadge(item) {
+  const badge = badges.value.find(value => value.status === '可用')
+  if (!badge) return announce('当前没有可发放的访客证')
+  try {
+    await api.issueBadge(item.id, badge.badgeNo)
+    await loadData()
+    announce(`${badge.badgeNo} 已发放给 ${item.visitorName}`)
+  } catch (error) { announce(error.message) }
+}
+async function operateBadge(item, action) {
+  try {
+    await api.badgeAction(item.id, action, action === 'RETURN' ? '前台人工归还' : '现场确认遗失并冻结权限')
+    await loadData()
+    announce(action === 'RETURN' ? '访客证已归还并恢复可用' : '访客证已挂失并生成高风险预警')
+  } catch (error) { announce(error.message) }
+}
+async function recordGateAccess() {
+  if (!accessForm.appointmentNo.trim()) return announce('请输入预约编号')
+  try {
+    accessDecision.value = await api.recordAccess({ ...accessForm })
+    await loadData()
+    announce(accessDecision.value.message)
+  } catch (error) { accessDecision.value = { allowed: false, message: error.message }; announce(error.message) }
+}
+async function dispatchNotifications() {
+  try {
+    const result = await api.dispatchNotifications()
+    await loadData()
+    announce(`派发完成：成功 ${result.sent} 条，失败 ${result.failed} 条`)
+  } catch (error) { announce(error.message) }
+}
+async function retryNotification(item) {
+  try { await api.retryNotification(item.id); await loadData(); announce('通知已进入立即重试队列') }
+  catch (error) { announce(error.message) }
+}
 function maskPhone(phone) { return phone ? phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '-' }
 function showMobile(view) { mobileView.value = view; mode.value = 'mobile' }
 onMounted(loadData)
@@ -163,7 +211,7 @@ onMounted(loadData)
       <aside class="sidebar">
         <div class="brand"><span class="mark">ZH</span><div><b>{{ domain.shortName }}</b><small>访客预约与通行管理</small></div></div>
         <nav><button v-for="item in nav" :key="item.label" :class="{ active: active === item.label }" @click="active = item.label"><i>{{ item.icon }}</i><span>{{ item.label }}</span></button></nav>
-        <div class="side-foot"><span>社区源码版 · V1.5</span><p>{{ domain.company }}</p><a :href="domain.website" target="_blank">访问知华科技官网</a></div>
+        <div class="side-foot"><span>社区源码版 · V1.6</span><p>{{ domain.company }}</p><a :href="domain.website" target="_blank">访问知华科技官网</a></div>
       </aside>
 
       <main class="main">
@@ -201,9 +249,28 @@ onMounted(loadData)
           </template>
 
           <template v-else-if="active === '企业管控'">
-            <section class="page-title"><div><p class="eyebrow">ENTERPRISE CONTROL</p><h1>企业审批与园区管控</h1><p>统一监管分级审批、处理时效、园区容量和在园超时风险</p></div><button class="primary" @click="runOverstayInspection">执行在园巡检</button></section>
-            <section class="metrics enterprise-metrics"><article><div><p>待处理审批</p><strong>{{ approvalBoard.pending }}<small>项</small></strong></div><span>接待人与安保任务</span></article><article><div><p>审批已超时</p><strong>{{ approvalBoard.overdue }}<small>项</small></strong></div><span>超过 {{ settings.approvalSlaHours }} 小时 SLA</span></article><article><div><p>安保复核</p><strong>{{ approvalBoard.securityReview }}<small>项</small></strong></div><span>受限区与高风险预约</span></article><article><div><p>风险关注</p><strong>{{ approvalBoard.highRisk }}<small>单</small></strong></div><span>尚未完成准入审批</span></article></section>
-            <section class="enterprise-grid"><article class="panel"><div class="panel-head"><div><h2>审批任务中心</h2><p>任务按创建时间倒序展示，所有决策保留操作人和意见</p></div><span class="subtle-tag">最近 50 项</span></div><div class="data-table approval-table"><div class="row head"><span>预约编号</span><span>审批阶段</span><span>责任人</span><span>截止时间</span><span>状态</span><span>处理人</span></div><div class="row" v-for="item in approvalBoard.recentTasks" :key="item.id"><span class="mono">{{ item.appointmentNo }}</span><span><b>{{ item.stage }}</b><small>{{ item.comment || '等待处理意见' }}</small></span><span>{{ item.assignee }}</span><span :class="{ overdue:item.overdue }">{{ item.dueAt?.replace('T',' ').slice(0,16) }}</span><span><i class="status" :class="item.status">{{ item.status }}</i></span><span>{{ item.decisionBy || '-' }}</span></div><div v-if="!approvalBoard.recentTasks.length" class="empty-state">新建预约后，审批任务会在这里自动生成。</div></div></article><aside class="panel policy-card"><div class="panel-head"><div><h2>当前管控策略</h2><p>{{ settings.siteName }} · SH-HQ</p></div><span class="online">策略生效</span></div><dl><div><dt>普通预约</dt><dd>接待人单级审批</dd></div><div><dt>受限区 / 8人以上</dt><dd>接待人 + 安保二级审批</dd></div><div><dt>时段容量上限</dt><dd>{{ settings.slotCapacity }} 人</dd></div><div><dt>审批处理 SLA</dt><dd>{{ settings.approvalSlaHours }} 小时</dd></div><div><dt>重复请求保护</dt><dd>客户端请求号幂等</dd></div><div><dt>在园风险</dt><dd>超时巡检自动生成预警</dd></div></dl><button class="outline" @click="active='基础设置'">调整企业策略</button></aside></section>
+            <section class="page-title"><div><p class="eyebrow">ENTERPRISE CONTROL</p><h1>企业接待控制台</h1><p>从准入审批延伸到访客证、门禁事件、消息派发和数据合规的完整现场闭环</p></div><button class="primary" @click="loadData">刷新运行数据</button></section>
+            <div class="tabs enterprise-tabs"><button v-for="tab in ['审批治理','现场通行','消息与合规']" :key="tab" :class="{ active: enterpriseTab === tab }" @click="enterpriseTab=tab">{{ tab }}</button></div>
+
+            <template v-if="enterpriseTab === '审批治理'">
+              <section class="metrics enterprise-metrics"><article><div><p>待处理审批</p><strong>{{ approvalBoard.pending }}<small>项</small></strong></div><span>接待人与安保任务</span></article><article><div><p>审批已超时</p><strong>{{ approvalBoard.overdue }}<small>项</small></strong></div><span>超过 {{ settings.approvalSlaHours }} 小时 SLA</span></article><article><div><p>安保复核</p><strong>{{ approvalBoard.securityReview }}<small>项</small></strong></div><span>受限区与高风险预约</span></article><article><div><p>风险关注</p><strong>{{ approvalBoard.highRisk }}<small>单</small></strong></div><span>尚未完成准入审批</span></article></section>
+              <section class="enterprise-grid"><article class="panel"><div class="panel-head"><div><h2>审批任务中心</h2><p>任务按创建时间倒序展示，所有决策保留操作人和意见</p></div><span class="subtle-tag">最近 50 项</span></div><div class="data-table approval-table"><div class="row head"><span>预约编号</span><span>审批阶段</span><span>责任人</span><span>截止时间</span><span>状态</span><span>处理人</span></div><div class="row" v-for="item in approvalBoard.recentTasks" :key="item.id"><span class="mono">{{ item.appointmentNo }}</span><span><b>{{ item.stage }}</b><small>{{ item.comment || '等待处理意见' }}</small></span><span>{{ item.assignee }}</span><span :class="{ overdue:item.overdue }">{{ item.dueAt?.replace('T',' ').slice(0,16) }}</span><span><i class="status" :class="item.status">{{ item.status }}</i></span><span>{{ item.decisionBy || '-' }}</span></div><div v-if="!approvalBoard.recentTasks.length" class="empty-state">新建预约后，审批任务会在这里自动生成。</div></div></article><aside class="panel policy-card"><div class="panel-head"><div><h2>当前管控策略</h2><p>{{ settings.siteName }} · SH-HQ</p></div><span class="online">策略生效</span></div><dl><div><dt>普通预约</dt><dd>接待人单级审批</dd></div><div><dt>受限区 / 8人以上</dt><dd>接待人 + 安保二级审批</dd></div><div><dt>时段容量上限</dt><dd>{{ settings.slotCapacity }} 人</dd></div><div><dt>审批处理 SLA</dt><dd>{{ settings.approvalSlaHours }} 小时</dd></div><div><dt>重复请求保护</dt><dd>客户端请求号幂等</dd></div><div><dt>在园风险</dt><dd>超时巡检自动生成预警</dd></div></dl><button class="outline" @click="runOverstayInspection">执行在园超时巡检</button></aside></section>
+            </template>
+
+            <template v-else-if="enterpriseTab === '现场通行'">
+              <section class="metrics field-metrics"><article><div><p>可用访客证</p><strong>{{ fieldDashboard.availableBadges }}<small>张</small></strong></div><span>可立即发放</span></article><article><div><p>已发放</p><strong>{{ fieldDashboard.issuedBadges }}<small>张</small></strong></div><span>在园持证</span></article><article><div><p>挂失证件</p><strong>{{ fieldDashboard.lostBadges }}<small>张</small></strong></div><span>权限已冻结</span></article><article><div><p>拒绝通行</p><strong>{{ fieldDashboard.deniedAccessEvents }}<small>次</small></strong></div><span>防尾随与状态拦截</span></article></section>
+              <section class="field-grid">
+                <article class="panel gate-console"><div class="panel-head"><div><h2>门禁通行工作台</h2><p>模拟闸机上报，系统根据预约实时决定准入并阻止重复进出</p></div><span class="online">GATEWAY ONLINE</span></div><div class="gate-form"><label>预约编号<input v-model="accessForm.appointmentNo" placeholder="VMS-..." /></label><label>门禁点<select v-model="accessForm.gateCode"><option v-for="item in resources.filter(v=>v.type==='门禁点')" :key="item.code" :value="item.code">{{ item.name }} · {{ item.code }}</option></select></label><label>通行方向<select v-model="accessForm.direction"><option value="IN">入场 IN</option><option value="OUT">离场 OUT</option></select></label><button class="primary" @click="recordGateAccess">执行通行核验</button></div><div v-if="accessDecision" class="access-decision" :class="{ denied: !accessDecision.allowed }"><strong>{{ accessDecision.allowed ? '允许通行' : '拒绝通行' }}</strong><p>{{ accessDecision.message }}</p></div></article>
+                <aside class="panel badge-issue"><div class="panel-head"><div><h2>待发证预约</h2><p>审批完成后绑定实体访客证</p></div></div><div class="issue-list"><div v-for="item in appointments.filter(v=>['已审批','已到访'].includes(v.status) && !badges.some(b=>b.appointmentNo===v.appointmentNo)).slice(0,5)" :key="item.id"><span><b>{{ item.visitorName }}</b><small>{{ item.appointmentNo }}</small></span><button class="link" @click="issueAvailableBadge(item)">发放访客证</button></div><p v-if="!appointments.some(v=>['已审批','已到访'].includes(v.status) && !badges.some(b=>b.appointmentNo===v.appointmentNo))" class="empty-copy">当前没有待发证预约</p></div></aside>
+              </section>
+              <section class="panel"><div class="panel-head"><div><h2>访客证台账</h2><p>覆盖领用、归还、自动回收和挂失冻结全过程</p></div><span class="subtle-tag">{{ badges.length }} 张</span></div><div class="data-table badge-table"><div class="row head"><span>证件编号</span><span>状态</span><span>持有人 / 预约</span><span>发放时间</span><span>最近说明</span><span>操作</span></div><div class="row" v-for="item in badges" :key="item.id"><span class="mono">{{ item.badgeNo }}</span><span><i class="status" :class="item.status">{{ item.status }}</i></span><span><b>{{ item.holderName || '-' }}</b><small>{{ item.appointmentNo || '未绑定预约' }}</small></span><span>{{ item.issuedAt?.replace('T',' ').slice(0,16) || '-' }}</span><span>{{ item.remark || '-' }}</span><span class="row-actions"><button v-if="item.status==='已发放'" class="link" @click="operateBadge(item,'RETURN')">归还</button><button v-if="item.status==='已发放'" class="link danger-link" @click="operateBadge(item,'REPORT_LOST')">挂失</button></span></div></div></section>
+              <section class="panel event-panel"><div class="panel-head"><div><h2>最近门禁事件</h2><p>允许与拒绝均持久化留痕，便于事后核查</p></div><span class="subtle-tag">最近 100 条</span></div><div class="data-table event-table"><div class="row head"><span>时间</span><span>预约编号</span><span>门禁 / 方向</span><span>判定</span><span>判定依据</span><span>操作人</span></div><div class="row" v-for="item in accessEvents" :key="item.id"><span>{{ item.occurredAt?.replace('T',' ').slice(0,16) }}</span><span class="mono">{{ item.appointmentNo }}</span><span><b>{{ item.gateCode }}</b><small>{{ item.direction === 'IN' ? '入场' : '离场' }}</small></span><span><i class="status" :class="item.result">{{ item.result }}</i></span><span>{{ item.reason }}</span><span>{{ item.operatorName }}</span></div><div v-if="!accessEvents.length" class="empty-state">执行一次通行核验后，门禁事件将在这里展示。</div></div></section>
+            </template>
+
+            <template v-else>
+              <section class="metrics field-metrics"><article><div><p>待发送通知</p><strong>{{ fieldDashboard.pendingNotifications }}<small>条</small></strong></div><span>等待消息工作器</span></article><article><div><p>发送失败</p><strong>{{ fieldDashboard.failedNotifications }}<small>条</small></strong></div><span>支持人工重试</span></article><article><div><p>待清理档案</p><strong>{{ retentionPreview.visitorProfiles }}<small>份</small></strong></div><span>只预检不自动删除</span></article><article><div><p>待清理日志</p><strong>{{ retentionPreview.auditLogs }}<small>条</small></strong></div><span>{{ retentionPreview.retentionDays }} 天留存策略</span></article></section>
+              <section class="message-grid"><article class="panel"><div class="panel-head"><div><h2>可靠消息任务</h2><p>业务操作写入通知任务，外部通道失败后保留原因与重试时间</p></div><button class="primary compact" @click="dispatchNotifications">执行消息派发</button></div><div class="data-table notice-table"><div class="row head"><span>创建时间</span><span>业务编号 / 模板</span><span>渠道</span><span>接收人</span><span>状态 / 次数</span><span>操作</span></div><div class="row" v-for="item in notifications" :key="item.id"><span>{{ item.createdAt?.replace('T',' ').slice(0,16) }}</span><span><b class="mono">{{ item.referenceNo }}</b><small>{{ item.templateCode }}</small></span><span>{{ item.channel }}</span><span>{{ item.recipient }}</span><span><i class="status" :class="item.status">{{ item.status }}</i><small>尝试 {{ item.attempts }} 次</small></span><span><button v-if="item.status==='失败'" class="link" @click="retryNotification(item)">立即重试</button><small v-else>{{ item.lastError || '-' }}</small></span></div></div></article><aside class="panel retention-card"><div class="panel-head"><div><h2>数据留存预检</h2><p>COMPLIANCE PREVIEW</p></div><span class="online">只读检查</span></div><strong>{{ retentionPreview.retentionDays }}</strong><span>天留存周期</span><dl><div><dt>计算阈值</dt><dd>{{ retentionPreview.threshold?.replace('T',' ').slice(0,16) }}</dd></div><div><dt>超期访客档案</dt><dd>{{ retentionPreview.visitorProfiles }} 份</dd></div><div><dt>超期审计日志</dt><dd>{{ retentionPreview.auditLogs }} 条</dd></div></dl><p>{{ retentionPreview.action }}</p><button class="outline" @click="active='基础设置'">调整留存策略</button></aside></section>
+            </template>
           </template>
 
           <template v-else-if="active === '审计报表'">

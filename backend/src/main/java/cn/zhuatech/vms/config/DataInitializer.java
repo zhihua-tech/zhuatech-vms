@@ -10,12 +10,16 @@ import cn.zhuatech.vms.model.RiskAlert;
 import cn.zhuatech.vms.model.SiteResource;
 import cn.zhuatech.vms.model.SystemSetting;
 import cn.zhuatech.vms.model.VisitorProfile;
+import cn.zhuatech.vms.model.VisitorBadge;
+import cn.zhuatech.vms.model.NotificationTask;
 import cn.zhuatech.vms.repository.AppointmentRepository;
 import cn.zhuatech.vms.repository.ApprovalTaskRepository;
 import cn.zhuatech.vms.repository.RiskAlertRepository;
 import cn.zhuatech.vms.repository.SiteResourceRepository;
 import cn.zhuatech.vms.repository.SystemSettingRepository;
 import cn.zhuatech.vms.repository.VisitorProfileRepository;
+import cn.zhuatech.vms.repository.VisitorBadgeRepository;
+import cn.zhuatech.vms.repository.NotificationTaskRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -38,7 +42,8 @@ public class DataInitializer {
     @Bean
     CommandLineRunner seedVms(AppointmentRepository appointments, VisitorProfileRepository visitors,
                               SiteResourceRepository resources, RiskAlertRepository alerts,
-                              SystemSettingRepository settings, ApprovalTaskRepository approvalTasks) {
+                              SystemSettingRepository settings, ApprovalTaskRepository approvalTasks,
+                              VisitorBadgeRepository badges, NotificationTaskRepository notifications) {
         return args -> {
             if (appointments.count() == 0) {
                 appointments.saveAll(java.util.List.of(
@@ -89,6 +94,16 @@ public class DataInitializer {
                     .filter(item -> "待审批".equals(item.getStatus()))
                     .forEach(item -> approvalTasks.save(new ApprovalTask(item.getAppointmentNo(),
                         "接待人审批", item.getHostName(), LocalDateTime.now().plusHours(4))));
+            }
+            if (badges.count() == 0) {
+                VisitorBadge issued = new VisitorBadge("BG-SH-0001");
+                issued.issue("VMS-20260826-103", "赵磊");
+                badges.saveAll(java.util.List.of(issued, new VisitorBadge("BG-SH-0002"),
+                    new VisitorBadge("BG-SH-0003"), new VisitorBadge("BG-SH-0004"),
+                    new VisitorBadge("BG-SH-0005")));
+            }
+            if (notifications.count() == 0) {
+                notifications.save(new NotificationTask("VMS-20260826-101", "站内消息", "周敏", "预约待审批"));
             }
         };
     }
