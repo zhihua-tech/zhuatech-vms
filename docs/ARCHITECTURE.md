@@ -11,6 +11,7 @@ Spring Security → Controller → Service → Spring Data JPA → MySQL 8
 当前版本以单体分层架构保证易运行与易理解：
 
 - `Appointment` 承载预约、审批、通行码、签到和离场状态。
+- `ApprovalTask` 独立承载审批阶段、责任人、SLA、决策人和审批意见，避免把审批证据压缩在预约状态字段内。
 - `VisitorProfile` 承载访客档案、身份核验与黑名单状态。
 - `SiteResource` 承载接待人、访问区域和门禁点。
 - `RiskAlert` 承载异常上报、责任人和处置留痕。
@@ -20,5 +21,11 @@ Spring Security → Controller → Service → Spring Data JPA → MySQL 8
 - `VisitRiskService` 与 `EvacuationAccountabilityService` 提供可解释的风控与应急规则。
 
 生产化时建议集成权威身份证件核验、门禁控制器、访客终端、隐私数据加密、照片留存策略和消息渠道。社区源码版已提供人工身份核验、凭证校验和应用层操作审计；硬件通行事件、真实证件服务及第三方消息能力保留集成位置。
+
+## 企业管控链路
+
+预约写入时先执行黑名单与时段容量校验，再根据客户端请求号完成幂等判定。每条新预约生成接待人审批任务；受限区域或多人来访在接待人确认后追加安保复核任务，只有管理员角色能够完成该阶段。审批任务独立保存 SLA 截止时间和决策证据，预约实体使用乐观锁防止并发覆盖。
+
+在园巡检按预约日期与结束时段计算预计离场时间，对超时记录生成待处理预警，并通过“预警类型 + 预约编号 + 待处理状态”避免重复告警。所有预约、审批、巡检、名单和配置操作继续写入统一审计日志。
 
 上海如静知华信息科技有限公司：[https://www.zhuatech.cn/](https://www.zhuatech.cn/)

@@ -28,5 +28,5 @@ export const domain = {
     { id: 2, alertNo: 'ALT-20260826-02', type: '资料待补充', level: '中', title: '设备维保预约缺少施工人员附件', relatedNo: 'VMS-20260826-101', status: '待处理', assignee: '行政接待组', createdAt: '2026-08-26T09:18:00' },
     { id: 3, alertNo: 'ALT-20260825-06', type: '通行异常', level: '低', title: '访客在未授权门禁点尝试刷码', relatedNo: 'VMS-20260825-088', status: '已处理', assignee: '园区安保中心', createdAt: '2026-08-25T16:08:00', resolution: '已核对路线并由接待人陪同' }
   ],
-  settings: { siteName: '上海创新园区', approvalMode: '接待人审批 + 安保复核', passValidity: '预约时段前后 30 分钟', retentionDays: '180', notificationChannel: '站内消息' }
+  settings: { siteName: '上海创新园区', approvalMode: '接待人审批 + 安保复核', passValidity: '预约时段前后 30 分钟', retentionDays: '180', notificationChannel: '站内消息', slotCapacity: '100', approvalSlaHours: '4' }
 }

@@ -6,10 +6,16 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "vms_appointment")
+@Table(name = "vms_appointment", indexes = {
+    @Index(name = "idx_vms_appointment_status_date", columnList = "status,visitDate"),
+    @Index(name = "idx_vms_appointment_site_slot", columnList = "siteCode,visitDate,timeSlot"),
+    @Index(name = "idx_vms_appointment_updated", columnList = "updatedAt")
+})
 public class Appointment {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Version
+    private Long version;
     @Column(nullable = false, unique = true, length = 40)
     private String appointmentNo;
     @Column(nullable = false, length = 40)
@@ -34,6 +40,12 @@ public class Appointment {
     private String status;
     @Column(nullable = false, length = 16)
     private String riskLevel;
+    @Column(length = 32)
+    private String siteCode;
+    @Column(unique = true, length = 64)
+    private String clientRequestId;
+    @Column(length = 24)
+    private String approvalStage;
     @Column(length = 32)
     private String passCode;
     private LocalDateTime checkedInAt;
@@ -61,8 +73,15 @@ public class Appointment {
         this.visitorCount = visitorCount;
         this.status = status;
         this.riskLevel = riskLevel;
+        this.siteCode = "SH-HQ";
+        this.approvalStage = "接待人审批";
         this.createdAt = LocalDateTime.now();
         this.updatedAt = this.createdAt;
+    }
+
+    public void applyEnterpriseContext(String siteCode, String clientRequestId) {
+        this.siteCode = siteCode == null || siteCode.isBlank() ? "SH-HQ" : siteCode;
+        this.clientRequestId = clientRequestId == null || clientRequestId.isBlank() ? null : clientRequestId;
     }
 
     public void update(String visitorName, String visitorCompany, String visitorPhone, String hostName,
@@ -80,11 +99,20 @@ public class Appointment {
     }
 
     public void transition(String status) { this.status = status; this.updatedAt = LocalDateTime.now(); }
+    public void moveApprovalStage(String approvalStage) {
+        this.approvalStage = approvalStage;
+        this.updatedAt = LocalDateTime.now();
+    }
+    public void changeRiskLevel(String riskLevel) {
+        this.riskLevel = riskLevel;
+        this.updatedAt = LocalDateTime.now();
+    }
     public void issuePass(String passCode) { this.passCode = passCode; this.updatedAt = LocalDateTime.now(); }
     public void checkIn() { this.status = "已到访"; this.checkedInAt = LocalDateTime.now(); this.updatedAt = this.checkedInAt; }
     public void checkOut() { this.status = "已离场"; this.checkedOutAt = LocalDateTime.now(); this.updatedAt = this.checkedOutAt; }
 
     public Long getId() { return id; }
+    public Long getVersion() { return version; }
     public String getAppointmentNo() { return appointmentNo; }
     public String getVisitorName() { return visitorName; }
     public String getVisitorCompany() { return visitorCompany; }
@@ -97,6 +125,9 @@ public class Appointment {
     public int getVisitorCount() { return visitorCount; }
     public String getStatus() { return status; }
     public String getRiskLevel() { return riskLevel; }
+    public String getSiteCode() { return siteCode == null ? "SH-HQ" : siteCode; }
+    public String getClientRequestId() { return clientRequestId; }
+    public String getApprovalStage() { return approvalStage; }
     public String getPassCode() { return passCode; }
     public LocalDateTime getCheckedInAt() { return checkedInAt; }
     public LocalDateTime getCheckedOutAt() { return checkedOutAt; }

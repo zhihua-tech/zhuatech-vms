@@ -5,11 +5,13 @@ import cn.zhuatech.vms.domain.DomainCatalog;
 import cn.zhuatech.vms.model.WorkItem;
 import cn.zhuatech.vms.repository.WorkItemRepository;
 import cn.zhuatech.vms.model.Appointment;
+import cn.zhuatech.vms.model.ApprovalTask;
 import cn.zhuatech.vms.model.RiskAlert;
 import cn.zhuatech.vms.model.SiteResource;
 import cn.zhuatech.vms.model.SystemSetting;
 import cn.zhuatech.vms.model.VisitorProfile;
 import cn.zhuatech.vms.repository.AppointmentRepository;
+import cn.zhuatech.vms.repository.ApprovalTaskRepository;
 import cn.zhuatech.vms.repository.RiskAlertRepository;
 import cn.zhuatech.vms.repository.SiteResourceRepository;
 import cn.zhuatech.vms.repository.SystemSettingRepository;
@@ -36,7 +38,7 @@ public class DataInitializer {
     @Bean
     CommandLineRunner seedVms(AppointmentRepository appointments, VisitorProfileRepository visitors,
                               SiteResourceRepository resources, RiskAlertRepository alerts,
-                              SystemSettingRepository settings) {
+                              SystemSettingRepository settings, ApprovalTaskRepository approvalTasks) {
         return args -> {
             if (appointments.count() == 0) {
                 appointments.saveAll(java.util.List.of(
@@ -78,7 +80,15 @@ public class DataInitializer {
                     new SystemSetting("approvalMode", "接待人审批 + 安保复核"),
                     new SystemSetting("passValidity", "预约时段前后 30 分钟"),
                     new SystemSetting("retentionDays", "180"),
-                    new SystemSetting("notificationChannel", "站内消息")));
+                    new SystemSetting("notificationChannel", "站内消息"),
+                    new SystemSetting("slotCapacity", "100"),
+                    new SystemSetting("approvalSlaHours", "4")));
+            }
+            if (approvalTasks.count() == 0) {
+                appointments.findAllByOrderByUpdatedAtDesc().stream()
+                    .filter(item -> "待审批".equals(item.getStatus()))
+                    .forEach(item -> approvalTasks.save(new ApprovalTask(item.getAppointmentNo(),
+                        "接待人审批", item.getHostName(), LocalDateTime.now().plusHours(4))));
             }
         };
     }

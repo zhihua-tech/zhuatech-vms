@@ -6,4 +6,5 @@ import java.util.List;
 public interface RiskAlertRepository extends JpaRepository<RiskAlert, Long> {
     List<RiskAlert> findAllByOrderByCreatedAtDesc();
     long countByStatus(String status);
+    boolean existsByTypeAndRelatedNoAndStatus(String type, String relatedNo, String status);
 }

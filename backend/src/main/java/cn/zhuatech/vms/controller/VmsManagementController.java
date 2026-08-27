@@ -4,6 +4,7 @@ package cn.zhuatech.vms.controller;
 import cn.zhuatech.vms.common.ApiResponse;
 import cn.zhuatech.vms.model.AuditLog;
 import cn.zhuatech.vms.model.Appointment;
+import cn.zhuatech.vms.model.ApprovalTask;
 import cn.zhuatech.vms.model.RiskAlert;
 import cn.zhuatech.vms.model.SiteResource;
 import cn.zhuatech.vms.model.VisitorProfile;
@@ -31,6 +32,12 @@ public class VmsManagementController {
         return ApiResponse.ok(service.createAppointment(request));
     }
 
+    @PostMapping("/vms/appointments/batch")
+    ApiResponse<VmsManagementService.BatchResult> createBatch(
+        @Valid @RequestBody VmsManagementService.BatchAppointmentRequest request) {
+        return ApiResponse.ok(service.createAppointments(request));
+    }
+
     @PutMapping("/vms/appointments/{id}")
     ApiResponse<Appointment> update(@PathVariable Long id,
         @Valid @RequestBody VmsManagementService.AppointmentRequest request) {
@@ -47,6 +54,19 @@ public class VmsManagementController {
     ApiResponse<VmsManagementService.PassVerification> verifyPass(
         @Valid @RequestBody VmsManagementService.PassRequest request) {
         return ApiResponse.ok(service.verifyPass(request));
+    }
+
+    @GetMapping("/vms/approval-tasks")
+    ApiResponse<List<ApprovalTask>> approvalTasks() { return ApiResponse.ok(service.listApprovalTasks()); }
+
+    @GetMapping("/admin/vms/enterprise/approval-board")
+    ApiResponse<VmsManagementService.ApprovalBoard> approvalBoard() {
+        return ApiResponse.ok(service.approvalBoard());
+    }
+
+    @PostMapping("/admin/vms/enterprise/overstay-inspections")
+    ApiResponse<VmsManagementService.InspectionResult> inspectOverstay() {
+        return ApiResponse.ok(service.inspectOverstay());
     }
 
     @GetMapping("/vms/visitors")

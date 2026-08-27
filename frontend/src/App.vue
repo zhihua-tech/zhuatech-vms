@@ -19,12 +19,14 @@ const visitors = ref([...domain.visitors])
 const resources = ref([...domain.resources])
 const alerts = ref([...domain.alerts])
 const auditLogs = ref([])
+const approvalTasks = ref([])
+const approvalBoard = reactive({ pending: 0, overdue: 0, securityReview: 0, highRisk: 0, recentTasks: [] })
 const report = reactive({ totalAppointments: 0, appointmentStatus: {}, totalVisitors: 0, unverifiedVisitors: 0, blacklistedVisitors: 0, totalAlerts: 0, openAlerts: 0, totalResources: 0, availableResources: 0 })
 const settings = reactive({ ...domain.settings })
 const nav = [
   { label: '运营总览', icon: '总' }, { label: '业务协同', icon: '协' },
   { label: '资源中心', icon: '资' }, { label: '风险预警', icon: '险' },
-  { label: '审计报表', icon: '报' }, { label: '基础设置', icon: '设' }
+  { label: '企业管控', icon: '企' }, { label: '审计报表', icon: '报' }, { label: '基础设置', icon: '设' }
 ]
 const appointmentForm = reactive({ visitorName: '', visitorCompany: '', visitorPhone: '', hostName: '', purpose: '', visitDate: '2026-08-27', timeSlot: '09:00-11:00', accessArea: 'A座会议中心', visitorCount: 1 })
 const exceptionForm = reactive({ type: '现场异常', level: '中', title: '', relatedNo: '', assignee: '园区安保中心' })
@@ -57,7 +59,7 @@ function localAction(item, action) {
 }
 async function loadData() {
   loading.value = true
-  const calls = await Promise.allSettled([api.appointments(), api.visitors(), api.resources(), api.alerts(), api.settings(), api.report(), api.auditLogs()])
+  const calls = await Promise.allSettled([api.appointments(), api.visitors(), api.resources(), api.alerts(), api.settings(), api.report(), api.auditLogs(), api.approvalTasks(), api.approvalBoard()])
   if (calls[0].status === 'fulfilled') appointments.value = calls[0].value
   if (calls[1].status === 'fulfilled') visitors.value = calls[1].value
   if (calls[2].status === 'fulfilled') resources.value = calls[2].value
@@ -65,6 +67,8 @@ async function loadData() {
   if (calls[4].status === 'fulfilled') Object.assign(settings, calls[4].value)
   if (calls[5].status === 'fulfilled') Object.assign(report, calls[5].value)
   if (calls[6].status === 'fulfilled') auditLogs.value = calls[6].value
+  if (calls[7].status === 'fulfilled') approvalTasks.value = calls[7].value
+  if (calls[8].status === 'fulfilled') Object.assign(approvalBoard, calls[8].value)
   loading.value = false
 }
 function openAppointment(item) { selected.value = item; modal.value = 'detail' }
@@ -79,7 +83,7 @@ async function runAction(item, action) {
 async function createAppointment() {
   if (!appointmentForm.visitorName || !appointmentForm.visitorPhone || !appointmentForm.hostName || !appointmentForm.purpose) return announce('请完整填写访客、手机、接待人与来访事由')
   let created
-  try { created = await api.createAppointment({ ...appointmentForm, visitorCount: Number(appointmentForm.visitorCount) }) }
+  try { created = await api.createAppointment({ ...appointmentForm, visitorCount: Number(appointmentForm.visitorCount), siteCode: 'SH-HQ', clientRequestId: window.crypto?.randomUUID?.() || `WEB-${Date.now()}` }) }
   catch {
     created = { ...appointmentForm, id: Date.now(), appointmentNo: `VMS-DEMO-${String(Date.now()).slice(-4)}`, visitorCount: Number(appointmentForm.visitorCount), status: '待审批', riskLevel: appointmentForm.accessArea.includes('受限') ? '关注' : '正常' }
   }
@@ -138,8 +142,15 @@ async function reportException() {
   announce('异常已上报，安保中心将跟进处理')
 }
 async function saveSettings() {
-  try { await api.saveSettings({ ...settings, retentionDays: Number(settings.retentionDays) }) } catch { /* 离线演示保留本地设置 */ }
+  try { await api.saveSettings({ ...settings, retentionDays: Number(settings.retentionDays), slotCapacity: Number(settings.slotCapacity), approvalSlaHours: Number(settings.approvalSlaHours) }) } catch { /* 离线演示保留本地设置 */ }
   announce('基础设置已保存')
+}
+async function runOverstayInspection() {
+  try {
+    const result = await api.inspectOverstay()
+    await loadData()
+    announce(`巡检完成：检查 ${result.inspected} 条在园记录，新增 ${result.alertsGenerated} 条预警`)
+  } catch (error) { announce(error.message) }
 }
 function maskPhone(phone) { return phone ? phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '-' }
 function showMobile(view) { mobileView.value = view; mode.value = 'mobile' }
@@ -152,7 +163,7 @@ onMounted(loadData)
       <aside class="sidebar">
         <div class="brand"><span class="mark">ZH</span><div><b>{{ domain.shortName }}</b><small>访客预约与通行管理</small></div></div>
         <nav><button v-for="item in nav" :key="item.label" :class="{ active: active === item.label }" @click="active = item.label"><i>{{ item.icon }}</i><span>{{ item.label }}</span></button></nav>
-        <div class="side-foot"><span>社区源码版 · V1.4</span><p>{{ domain.company }}</p><a :href="domain.website" target="_blank">访问知华科技官网</a></div>
+        <div class="side-foot"><span>社区源码版 · V1.5</span><p>{{ domain.company }}</p><a :href="domain.website" target="_blank">访问知华科技官网</a></div>
       </aside>
 
       <main class="main">
@@ -171,7 +182,7 @@ onMounted(loadData)
 
           <template v-else-if="active === '业务协同'">
             <section class="page-title"><div><p class="eyebrow">APPOINTMENT WORKFLOW</p><h1>预约与接待协同</h1><p>统一处理预约、审批、签到、通行和离场</p></div><button class="primary" @click="modal='appointment'">＋ 新建预约</button></section>
-            <section class="toolbar"><div class="search"><span>⌕</span><input v-model="search" placeholder="搜索预约编号、访客、单位或接待人" /></div><select v-model="statusFilter"><option v-for="item in ['全部状态','待审批','已审批','已到访','已离场','已驳回','已取消']" :key="item">{{ item }}</option></select><span class="result">共 {{ filteredAppointments.length }} 条</span></section>
+            <section class="toolbar"><div class="search"><span>⌕</span><input v-model="search" placeholder="搜索预约编号、访客、单位或接待人" /></div><select v-model="statusFilter"><option v-for="item in ['全部状态','待审批','安保复核','已审批','已到访','已离场','已驳回','已取消']" :key="item">{{ item }}</option></select><span class="result">共 {{ filteredAppointments.length }} 条</span></section>
             <section class="panel"><div class="data-table appointment-table"><div class="row head"><span>预约信息</span><span>访客</span><span>来访安排</span><span>接待与区域</span><span>风险</span><span>状态</span><span>操作</span></div><div class="row" v-for="item in filteredAppointments" :key="item.id"><span><b class="mono">{{ item.appointmentNo }}</b><small>{{ item.purpose }}</small></span><span><b>{{ item.visitorName }} · {{ item.visitorCount }}人</b><small>{{ maskPhone(item.visitorPhone) }}</small></span><span><b>{{ item.visitDate }}</b><small>{{ item.timeSlot }}</small></span><span><b>{{ item.hostName }}</b><small>{{ item.accessArea }}</small></span><span><i class="risk" :class="item.riskLevel">{{ item.riskLevel }}</i></span><span><i class="status" :class="item.status">{{ item.status }}</i></span><span><button class="link" @click="openAppointment(item)">处理</button></span></div></div></section>
           </template>
 
@@ -189,6 +200,12 @@ onMounted(loadData)
             <section class="panel emergency"><div><span class="emergency-icon">应</span><div><h2>应急疏散访客清点</h2><p>按入场、离场、集合点签到和接待人确认人数计算未清点访客。</p></div></div><button class="outline" @click="announce('演示：当前在园访客均已纳入应急清点名单')">生成清点名单</button></section>
           </template>
 
+          <template v-else-if="active === '企业管控'">
+            <section class="page-title"><div><p class="eyebrow">ENTERPRISE CONTROL</p><h1>企业审批与园区管控</h1><p>统一监管分级审批、处理时效、园区容量和在园超时风险</p></div><button class="primary" @click="runOverstayInspection">执行在园巡检</button></section>
+            <section class="metrics enterprise-metrics"><article><div><p>待处理审批</p><strong>{{ approvalBoard.pending }}<small>项</small></strong></div><span>接待人与安保任务</span></article><article><div><p>审批已超时</p><strong>{{ approvalBoard.overdue }}<small>项</small></strong></div><span>超过 {{ settings.approvalSlaHours }} 小时 SLA</span></article><article><div><p>安保复核</p><strong>{{ approvalBoard.securityReview }}<small>项</small></strong></div><span>受限区与高风险预约</span></article><article><div><p>风险关注</p><strong>{{ approvalBoard.highRisk }}<small>单</small></strong></div><span>尚未完成准入审批</span></article></section>
+            <section class="enterprise-grid"><article class="panel"><div class="panel-head"><div><h2>审批任务中心</h2><p>任务按创建时间倒序展示，所有决策保留操作人和意见</p></div><span class="subtle-tag">最近 50 项</span></div><div class="data-table approval-table"><div class="row head"><span>预约编号</span><span>审批阶段</span><span>责任人</span><span>截止时间</span><span>状态</span><span>处理人</span></div><div class="row" v-for="item in approvalBoard.recentTasks" :key="item.id"><span class="mono">{{ item.appointmentNo }}</span><span><b>{{ item.stage }}</b><small>{{ item.comment || '等待处理意见' }}</small></span><span>{{ item.assignee }}</span><span :class="{ overdue:item.overdue }">{{ item.dueAt?.replace('T',' ').slice(0,16) }}</span><span><i class="status" :class="item.status">{{ item.status }}</i></span><span>{{ item.decisionBy || '-' }}</span></div><div v-if="!approvalBoard.recentTasks.length" class="empty-state">新建预约后，审批任务会在这里自动生成。</div></div></article><aside class="panel policy-card"><div class="panel-head"><div><h2>当前管控策略</h2><p>{{ settings.siteName }} · SH-HQ</p></div><span class="online">策略生效</span></div><dl><div><dt>普通预约</dt><dd>接待人单级审批</dd></div><div><dt>受限区 / 8人以上</dt><dd>接待人 + 安保二级审批</dd></div><div><dt>时段容量上限</dt><dd>{{ settings.slotCapacity }} 人</dd></div><div><dt>审批处理 SLA</dt><dd>{{ settings.approvalSlaHours }} 小时</dd></div><div><dt>重复请求保护</dt><dd>客户端请求号幂等</dd></div><div><dt>在园风险</dt><dd>超时巡检自动生成预警</dd></div></dl><button class="outline" @click="active='基础设置'">调整企业策略</button></aside></section>
+          </template>
+
           <template v-else-if="active === '审计报表'">
             <section class="page-title"><div><p class="eyebrow">REPORT & AUDIT</p><h1>运营报表与操作审计</h1><p>查看预约结构、访客风险、资源可用率以及最近业务操作</p></div><button class="outline" @click="loadData">刷新数据</button></section>
             <section class="metrics report-metrics"><article><div><p>预约总量</p><strong>{{ report.totalAppointments }}<small>单</small></strong></div><span>全状态汇总</span></article><article><div><p>访客档案</p><strong>{{ report.totalVisitors }}<small>人</small></strong></div><span>{{ report.unverifiedVisitors }} 人待核验</span></article><article><div><p>待处理风险</p><strong>{{ report.openAlerts }}<small>条</small></strong></div><span>共 {{ report.totalAlerts }} 条记录</span></article><article><div><p>可用资源</p><strong>{{ report.availableResources }}<small>/ {{ report.totalResources }}</small></strong></div><span>接待人、区域与门禁</span></article></section>
@@ -198,7 +215,7 @@ onMounted(loadData)
 
           <template v-else>
             <section class="page-title"><div><p class="eyebrow">SYSTEM SETTINGS</p><h1>基础设置</h1><p>配置园区、审批、通行、通知和数据留存规则</p></div><button class="primary" @click="saveSettings">保存设置</button></section>
-            <section class="settings-layout"><article class="panel settings-card"><div class="panel-head"><div><h2>园区与审批</h2><p>决定预约进入园区前的审批方式</p></div></div><label>园区名称<input v-model="settings.siteName" /></label><label>审批模式<select v-model="settings.approvalMode"><option>接待人审批 + 安保复核</option><option>仅接待人审批</option><option>管理员统一审批</option></select></label><label>通行码有效范围<select v-model="settings.passValidity"><option>预约时段前后 30 分钟</option><option>仅预约时段内</option><option>当日有效</option></select></label></article><article class="panel settings-card"><div class="panel-head"><div><h2>数据与通知</h2><p>演示版采用站内消息，外部渠道预留对接</p></div></div><label>访客记录保留天数<input v-model="settings.retentionDays" type="number" min="30" /></label><label>默认通知渠道<select v-model="settings.notificationChannel"><option>站内消息</option><option>企业微信（预留）</option><option>短信（预留）</option></select></label><div class="setting-hint"><b>安全提示</b><p>生产环境请更换默认账号密码，并按隐私政策配置证件、照片和访问记录的保存期限。</p></div></article></section>
+            <section class="settings-layout"><article class="panel settings-card"><div class="panel-head"><div><h2>园区与审批</h2><p>决定预约进入园区前的审批方式</p></div></div><label>园区名称<input v-model="settings.siteName" /></label><label>审批模式<select v-model="settings.approvalMode"><option>接待人审批 + 安保复核</option><option>仅接待人审批</option><option>管理员统一审批</option></select></label><label>通行码有效范围<select v-model="settings.passValidity"><option>预约时段前后 30 分钟</option><option>仅预约时段内</option><option>当日有效</option></select></label><label>单时段容量上限（人）<input v-model="settings.slotCapacity" type="number" min="1" max="10000" /></label><label>审批 SLA（小时）<input v-model="settings.approvalSlaHours" type="number" min="1" max="72" /></label></article><article class="panel settings-card"><div class="panel-head"><div><h2>数据与通知</h2><p>演示版采用站内消息，外部渠道预留对接</p></div></div><label>访客记录保留天数<input v-model="settings.retentionDays" type="number" min="30" /></label><label>默认通知渠道<select v-model="settings.notificationChannel"><option>站内消息</option><option>企业微信（预留）</option><option>短信（预留）</option></select></label><div class="setting-hint"><b>安全提示</b><p>生产环境请更换默认账号密码，并按隐私政策配置证件、照片和访问记录的保存期限。</p></div></article></section>
             <section class="panel account-panel"><div class="panel-head"><div><h2>演示账号与权限</h2><p>管理员负责配置与风控，运营人员负责日常预约协同</p></div></div><div class="account-row"><span class="avatar">管</span><div><b>admin</b><small>系统管理员 · 全部模块</small></div><i>已启用</i></div><div class="account-row"><span class="avatar operator">运</span><div><b>operator</b><small>运营人员 · 预约、访客、预警处置</small></div><i>已启用</i></div></section>
           </template>
         </div>

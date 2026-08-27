@@ -2,11 +2,20 @@
 package cn.zhuatech.vms.repository;
 import cn.zhuatech.vms.model.Appointment;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
     List<Appointment> findAllByOrderByUpdatedAtDesc();
     Optional<Appointment> findByAppointmentNo(String appointmentNo);
     Optional<Appointment> findByPassCode(String passCode);
+    Optional<Appointment> findByClientRequestId(String clientRequestId);
+    List<Appointment> findByStatus(String status);
     long countByStatus(String status);
+    @Query("select coalesce(sum(a.visitorCount), 0) from Appointment a where a.visitDate = :visitDate " +
+        "and a.timeSlot = :timeSlot and a.status in :statuses")
+    long activeVisitorCount(@Param("visitDate") LocalDate visitDate, @Param("timeSlot") String timeSlot,
+                            @Param("statuses") List<String> statuses);
 }

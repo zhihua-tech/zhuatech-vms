@@ -12,9 +12,11 @@ Base URL：`http://localhost:8080/api`。除公开信息外均使用 HTTP Basic 
 | GET | `/vms/overview` | OPERATOR | 预约、在园访客和预警汇总 |
 | GET | `/vms/appointments` | OPERATOR | 预约列表 |
 | POST | `/vms/appointments` | OPERATOR | 新建预约 |
+| POST | `/vms/appointments/batch` | OPERATOR | 批量创建最多 50 条预约 |
 | PUT | `/vms/appointments/{id}` | OPERATOR | 修改待审批或已驳回预约 |
 | POST | `/vms/appointments/{id}/actions` | OPERATOR | 审批、驳回、取消、签到或离场 |
 | POST | `/vms/passes/verify` | OPERATOR | 按预约编号或通行码核验通行凭证 |
+| GET | `/vms/approval-tasks` | OPERATOR | 查询结构化审批任务及处理记录 |
 | GET | `/vms/visitors` | OPERATOR | 访客档案列表 |
 | POST | `/admin/vms/visitors/{id}/blacklist` | ADMIN | 加入或解除黑名单 |
 | POST | `/vms/visitors/{id}/identity` | OPERATOR | 标记或撤销访客身份核验 |
@@ -29,6 +31,8 @@ Base URL：`http://localhost:8080/api`。除公开信息外均使用 HTTP Basic 
 | PUT | `/admin/vms/settings` | ADMIN | 更新园区、审批、通行、通知和留存设置 |
 | GET | `/admin/vms/reports/operations` | ADMIN | 预约、访客和资源运营报表 |
 | GET | `/admin/vms/audit-logs` | ADMIN | 最近 100 条关键操作审计日志 |
+| GET | `/admin/vms/enterprise/approval-board` | ADMIN | 审批待办、超时、安保复核和高风险看板 |
+| POST | `/admin/vms/enterprise/overstay-inspections` | ADMIN | 执行在园超时巡检并生成风险预警 |
 
 风险评估请求包含 `backlog`、`delayedItems`、`criticalItems`、`capacityUtilization`、`dataCompleteness`，均为非负整数；百分比字段范围为 0–100。
 
@@ -40,7 +44,13 @@ Base URL：`http://localhost:8080/api`。除公开信息外均使用 HTTP Basic 
 {"action":"APPROVE","remark":"接待人已确认"}
 ```
 
-支持的 `action` 为 `APPROVE`、`REJECT`、`CANCEL`、`CHECK_IN` 和 `CHECK_OUT`。服务端校验状态顺序，非法流转返回 HTTP 409。
+支持的 `action` 为 `APPROVE`、`REJECT`、`CANCEL`、`CHECK_IN` 和 `CHECK_OUT`。服务端校验状态顺序，非法流转返回 HTTP 409。普通预约一次通过后签发通行码；受限区域或 8 人以上预约第一次通过后进入“安保复核”，第二次审批必须使用 ADMIN 角色，职责越权返回 HTTP 403。
+
+创建预约可选传 `clientRequestId` 和 `siteCode`。同一 `clientRequestId` 重试会返回第一次创建的预约，不会重复生成业务记录。批量接口请求结构如下：
+
+```json
+{"appointments":[{"visitorName":"张三","visitorCompany":"合作伙伴","visitorPhone":"13800000000","hostName":"李经理","purpose":"项目交流","visitDate":"2026-09-01","timeSlot":"09:00-11:00","accessArea":"A座会议中心","visitorCount":2,"clientRequestId":"ERP-20260901-001","siteCode":"SH-HQ"}]}
+```
 
 通行凭证核验请求可传预约编号或通行码：
 

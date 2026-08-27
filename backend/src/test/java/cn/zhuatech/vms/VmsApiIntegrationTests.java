@@ -148,4 +148,103 @@ class VmsApiIntegrationTests {
         mvc.perform(get("/api/admin/vms/settings").with(httpBasic("admin", "admin123")))
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.retentionDays").value("365"));
     }
+
+    @Test void clientRequestIdMakesAppointmentCreationIdempotent() throws Exception {
+        String payload = """
+            {"visitorName":"幂等测试访客","visitorCompany":"知华测试伙伴","visitorPhone":"13812340001",
+            "hostName":"周敏","purpose":"幂等预约测试","visitDate":"2026-09-03",
+            "timeSlot":"09:00-11:00","accessArea":"A座会议中心","visitorCount":2,
+            "clientRequestId":"TEST-IDEMPOTENCY-001","siteCode":"SH-HQ"}
+            """;
+        var first = mvc.perform(post("/api/vms/appointments").with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content(payload))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.clientRequestId").value("TEST-IDEMPOTENCY-001"))
+            .andReturn().getResponse().getContentAsString();
+        var second = mvc.perform(post("/api/vms/appointments").with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content(payload))
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        var pattern = java.util.regex.Pattern.compile("\\\"id\\\":(\\d+)");
+        var firstId = pattern.matcher(first); var secondId = pattern.matcher(second);
+        org.junit.jupiter.api.Assertions.assertTrue(firstId.find());
+        org.junit.jupiter.api.Assertions.assertTrue(secondId.find());
+        org.junit.jupiter.api.Assertions.assertEquals(firstId.group(1), secondId.group(1));
+    }
+
+    @Test void restrictedAreaRequiresHostAndSecurityApproval() throws Exception {
+        var created = mvc.perform(post("/api/vms/appointments").with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                    {"visitorName":"受限区访客","visitorCompany":"维保服务商","visitorPhone":"13812340002",
+                    "hostName":"周敏","purpose":"机房设备巡检","visitDate":"2026-09-04",
+                    "timeSlot":"14:00-16:00","accessArea":"受限区-数据中心","visitorCount":2,
+                    "clientRequestId":"TEST-RESTRICTED-001","siteCode":"SH-HQ"}
+                    """))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.riskLevel").value("关注")).andReturn();
+        var matcher = java.util.regex.Pattern.compile("\\\"id\\\":(\\d+)")
+            .matcher(created.getResponse().getContentAsString());
+        org.junit.jupiter.api.Assertions.assertTrue(matcher.find());
+        long id = Long.parseLong(matcher.group(1));
+
+        mvc.perform(post("/api/vms/appointments/{id}/actions", id).with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"APPROVE\",\"remark\":\"接待人确认\"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("安保复核"))
+            .andExpect(jsonPath("$.data.passCode").doesNotExist());
+        mvc.perform(post("/api/vms/appointments/{id}/actions", id).with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"APPROVE\",\"remark\":\"越权安保复核\"}"))
+            .andExpect(status().isForbidden());
+        mvc.perform(post("/api/vms/appointments/{id}/actions", id).with(httpBasic("admin", "admin123"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"APPROVE\",\"remark\":\"安保复核通过\"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("已审批"))
+            .andExpect(jsonPath("$.data.passCode").isNotEmpty());
+    }
+
+    @Test void batchCapacityApprovalBoardAndOverstayInspectionWork() throws Exception {
+        mvc.perform(post("/api/vms/appointments/batch").with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                    {"appointments":[
+                    {"visitorName":"批量访客甲","visitorCompany":"合作伙伴甲","visitorPhone":"13812340003","hostName":"王诚","purpose":"批量接待测试","visitDate":"2026-09-05","timeSlot":"09:00-11:00","accessArea":"A座会议中心","visitorCount":2,"clientRequestId":"TEST-BATCH-001","siteCode":"SH-HQ"},
+                    {"visitorName":"批量访客乙","visitorCompany":"合作伙伴乙","visitorPhone":"13812340004","hostName":"王诚","purpose":"批量接待测试","visitDate":"2026-09-05","timeSlot":"14:00-16:00","accessArea":"A座会议中心","visitorCount":3,"clientRequestId":"TEST-BATCH-002","siteCode":"SH-HQ"}
+                    ]}
+                    """))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.processed").value(2));
+        mvc.perform(post("/api/vms/appointments").with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                    {"visitorName":"超容量访客","visitorCompany":"大型团队","visitorPhone":"13812340005",
+                    "hostName":"王诚","purpose":"容量校验","visitDate":"2026-09-06",
+                    "timeSlot":"09:00-11:00","accessArea":"A座会议中心","visitorCount":200}
+                    """))
+            .andExpect(status().isConflict());
+        mvc.perform(get("/api/admin/vms/enterprise/approval-board").with(httpBasic("admin", "admin123")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.pending").isNumber())
+            .andExpect(jsonPath("$.data.recentTasks").isArray());
+        mvc.perform(get("/api/admin/vms/enterprise/approval-board").with(httpBasic("operator", "operator123")))
+            .andExpect(status().isForbidden());
+        mvc.perform(post("/api/admin/vms/enterprise/overstay-inspections").with(httpBasic("admin", "admin123")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.inspected").isNumber());
+    }
+
+    @Test void rejectedAppointmentCanBeEditedAndResubmittedWithRecalculatedRisk() throws Exception {
+        var created = mvc.perform(post("/api/vms/appointments").with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                    {"visitorName":"重新送审访客","visitorCompany":"工程服务商","visitorPhone":"13812340006",
+                    "hostName":"周敏","purpose":"首次申请","visitDate":"2026-09-07",
+                    "timeSlot":"09:00-11:00","accessArea":"A座会议中心","visitorCount":2}
+                    """))
+            .andExpect(status().isOk()).andReturn();
+        var matcher = java.util.regex.Pattern.compile("\\\"id\\\":(\\d+)")
+            .matcher(created.getResponse().getContentAsString());
+        org.junit.jupiter.api.Assertions.assertTrue(matcher.find());
+        long id = Long.parseLong(matcher.group(1));
+        mvc.perform(post("/api/vms/appointments/{id}/actions", id).with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"REJECT\",\"remark\":\"补充区域信息\"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("已驳回"));
+        mvc.perform(put("/api/vms/appointments/{id}", id).with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                    {"visitorName":"重新送审访客","visitorCompany":"工程服务商","visitorPhone":"13812340006",
+                    "hostName":"周敏","purpose":"补充后的申请","visitDate":"2026-09-07",
+                    "timeSlot":"09:00-11:00","accessArea":"受限区-数据中心","visitorCount":2}
+                    """))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("待审批"))
+            .andExpect(jsonPath("$.data.riskLevel").value("关注"))
+            .andExpect(jsonPath("$.data.approvalStage").value("接待人审批"));
+    }
 }

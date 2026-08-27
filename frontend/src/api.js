@@ -15,6 +15,7 @@ export const api = {
   overview: () => request('/api/vms/overview'),
   appointments: () => request('/api/vms/appointments'),
   createAppointment: payload => request('/api/vms/appointments', { method: 'POST', body: JSON.stringify(payload) }),
+  createAppointmentsBatch: appointments => request('/api/vms/appointments/batch', { method: 'POST', body: JSON.stringify({ appointments }) }),
   appointmentAction: (id, action, remark = '') => request(`/api/vms/appointments/${id}/actions`, { method: 'POST', body: JSON.stringify({ action, remark }) }),
   verifyPass: credential => request('/api/vms/passes/verify', { method: 'POST', body: JSON.stringify({ credential }) }),
   visitors: () => request('/api/vms/visitors'),
@@ -30,5 +31,8 @@ export const api = {
   settings: () => request('/api/admin/vms/settings'),
   saveSettings: payload => request('/api/admin/vms/settings', { method: 'PUT', body: JSON.stringify(payload) }),
   report: () => request('/api/admin/vms/reports/operations'),
-  auditLogs: () => request('/api/admin/vms/audit-logs')
+  auditLogs: () => request('/api/admin/vms/audit-logs'),
+  approvalTasks: () => request('/api/vms/approval-tasks'),
+  approvalBoard: () => request('/api/admin/vms/enterprise/approval-board'),
+  inspectOverstay: () => request('/api/admin/vms/enterprise/overstay-inspections', { method: 'POST' })
 }
