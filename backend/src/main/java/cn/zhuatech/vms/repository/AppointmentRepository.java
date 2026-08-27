@@ -13,9 +13,11 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     Optional<Appointment> findByPassCode(String passCode);
     Optional<Appointment> findByClientRequestId(String clientRequestId);
     List<Appointment> findByStatus(String status);
+    List<Appointment> findBySiteCodeAndStatusOrderByCheckedInAtAsc(String siteCode, String status);
+    List<Appointment> findBySiteCodeAndVisitDateBetweenOrderByVisitDateAsc(String siteCode, LocalDate from, LocalDate to);
     long countByStatus(String status);
-    @Query("select coalesce(sum(a.visitorCount), 0) from Appointment a where a.visitDate = :visitDate " +
+    @Query("select coalesce(sum(a.visitorCount), 0) from Appointment a where a.siteCode = :siteCode and a.visitDate = :visitDate " +
         "and a.timeSlot = :timeSlot and a.status in :statuses")
-    long activeVisitorCount(@Param("visitDate") LocalDate visitDate, @Param("timeSlot") String timeSlot,
+    long activeVisitorCount(@Param("siteCode") String siteCode, @Param("visitDate") LocalDate visitDate, @Param("timeSlot") String timeSlot,
                             @Param("statuses") List<String> statuses);
 }

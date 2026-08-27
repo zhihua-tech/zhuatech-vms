@@ -11,6 +11,17 @@ export async function request(path, options = {}) {
   return body.data
 }
 
+export async function download(path, fileName) {
+  const response = await fetch(path, { headers: { Authorization: authorization } })
+  if (!response.ok) throw new Error(`导出失败（${response.status}）`)
+  const url = URL.createObjectURL(await response.blob())
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 export const api = {
   overview: () => request('/api/vms/overview'),
   appointments: () => request('/api/vms/appointments'),
@@ -44,5 +55,17 @@ export const api = {
   notifications: () => request('/api/admin/vms/notifications'),
   dispatchNotifications: () => request('/api/admin/vms/notifications/dispatch', { method: 'POST' }),
   retryNotification: id => request(`/api/admin/vms/notifications/${id}/retry`, { method: 'POST' }),
-  retentionPreview: () => request('/api/admin/vms/compliance/retention-preview')
+  retentionPreview: () => request('/api/admin/vms/compliance/retention-preview'),
+  sites: () => request('/api/vms/sites'),
+  createSite: payload => request('/api/admin/vms/sites', { method: 'POST', body: JSON.stringify(payload) }),
+  updateSite: (id, payload) => request(`/api/admin/vms/sites/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  contractorCredentials: () => request('/api/admin/vms/contractor-credentials'),
+  createCredential: payload => request('/api/admin/vms/contractor-credentials', { method: 'POST', body: JSON.stringify(payload) }),
+  updateCredential: (id, payload) => request(`/api/admin/vms/contractor-credentials/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  appointmentDocuments: id => request(`/api/vms/appointments/${id}/documents`),
+  submitDocument: (id, payload) => request(`/api/vms/appointments/${id}/documents`, { method: 'POST', body: JSON.stringify(payload) }),
+  reviewDocument: (id, approved, comment) => request(`/api/admin/vms/documents/${id}/review`, { method: 'POST', body: JSON.stringify({ approved, comment }) }),
+  compliance: id => request(`/api/vms/appointments/${id}/compliance`),
+  muster: siteCode => request(`/api/admin/vms/emergency/muster?siteCode=${encodeURIComponent(siteCode)}`),
+  exportAppointments: (siteCode, from, to) => download(`/api/admin/vms/exports/appointments?siteCode=${encodeURIComponent(siteCode)}&from=${from}&to=${to}`, `zhuatech-vms-${siteCode}-${from}-${to}.csv`)
 }

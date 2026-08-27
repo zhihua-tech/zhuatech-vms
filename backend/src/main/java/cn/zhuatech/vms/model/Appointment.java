@@ -84,6 +84,11 @@ public class Appointment {
         this.clientRequestId = clientRequestId == null || clientRequestId.isBlank() ? null : clientRequestId;
     }
 
+    public void moveToSite(String siteCode) {
+        this.siteCode = siteCode == null || siteCode.isBlank() ? "SH-HQ" : siteCode;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public void update(String visitorName, String visitorCompany, String visitorPhone, String hostName,
                        String purpose, LocalDate visitDate, String timeSlot, String accessArea, int visitorCount) {
         this.visitorName = visitorName;

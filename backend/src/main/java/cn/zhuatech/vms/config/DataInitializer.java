@@ -12,6 +12,9 @@ import cn.zhuatech.vms.model.SystemSetting;
 import cn.zhuatech.vms.model.VisitorProfile;
 import cn.zhuatech.vms.model.VisitorBadge;
 import cn.zhuatech.vms.model.NotificationTask;
+import cn.zhuatech.vms.model.EnterpriseSite;
+import cn.zhuatech.vms.model.ContractorCredential;
+import cn.zhuatech.vms.model.AppointmentDocument;
 import cn.zhuatech.vms.repository.AppointmentRepository;
 import cn.zhuatech.vms.repository.ApprovalTaskRepository;
 import cn.zhuatech.vms.repository.RiskAlertRepository;
@@ -20,6 +23,9 @@ import cn.zhuatech.vms.repository.SystemSettingRepository;
 import cn.zhuatech.vms.repository.VisitorProfileRepository;
 import cn.zhuatech.vms.repository.VisitorBadgeRepository;
 import cn.zhuatech.vms.repository.NotificationTaskRepository;
+import cn.zhuatech.vms.repository.EnterpriseSiteRepository;
+import cn.zhuatech.vms.repository.ContractorCredentialRepository;
+import cn.zhuatech.vms.repository.AppointmentDocumentRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,8 +49,19 @@ public class DataInitializer {
     CommandLineRunner seedVms(AppointmentRepository appointments, VisitorProfileRepository visitors,
                               SiteResourceRepository resources, RiskAlertRepository alerts,
                               SystemSettingRepository settings, ApprovalTaskRepository approvalTasks,
-                              VisitorBadgeRepository badges, NotificationTaskRepository notifications) {
+                              VisitorBadgeRepository badges, NotificationTaskRepository notifications,
+                              EnterpriseSiteRepository sites, ContractorCredentialRepository credentials,
+                              AppointmentDocumentRepository documents) {
         return args -> {
+            if (sites.count() == 0) {
+                sites.saveAll(java.util.List.of(
+                    new EnterpriseSite("SH-HQ", "上海总部园区", "上海市总部办公园区", "Asia/Shanghai", 100, "园区南广场 A 集合点", "启用"),
+                    new EnterpriseSite("SZ-RD", "深圳研发中心", "深圳市研发办公园区", "Asia/Shanghai", 60, "研发楼东侧 B 集合点", "启用")));
+            }
+            if (credentials.count() == 0) {
+                credentials.save(new ContractorCredential("启明设备服务有限公司", "设备维保服务资质",
+                    "CERT-QM-2026-001", LocalDate.now().plusYears(1), true, "有效"));
+            }
             if (appointments.count() == 0) {
                 appointments.saveAll(java.util.List.of(
                     new Appointment("VMS-20260826-101", "陈伟", "启明设备服务有限公司", "13800001231",
@@ -104,6 +121,12 @@ public class DataInitializer {
             }
             if (notifications.count() == 0) {
                 notifications.save(new NotificationTask("VMS-20260826-101", "站内消息", "周敏", "预约待审批"));
+            }
+            if (documents.count() == 0) {
+                AppointmentDocument identity = new AppointmentDocument("VMS-20260826-103", "身份证明",
+                    "visitor-identity.sha256", "a".repeat(64));
+                identity.review(true, "system", "历史在园记录迁移校验通过");
+                documents.save(identity);
             }
         };
     }

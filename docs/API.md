@@ -43,6 +43,18 @@ Base URL：`http://localhost:8080/api`。除公开信息外均使用 HTTP Basic 
 | POST | `/admin/vms/notifications/dispatch` | ADMIN | 执行待发送及到期失败通知派发 |
 | POST | `/admin/vms/notifications/{id}/retry` | ADMIN | 将失败通知置为立即重试 |
 | GET | `/admin/vms/compliance/retention-preview` | ADMIN | 按留存策略预检超期数据影响范围 |
+| GET | `/vms/sites` | OPERATOR | 查询企业园区及可用状态 |
+| POST | `/admin/vms/sites` | ADMIN | 新增企业园区、容量和应急集合点 |
+| PUT | `/admin/vms/sites/{id}` | ADMIN | 更新园区信息与启停状态 |
+| GET | `/admin/vms/contractor-credentials` | ADMIN | 查询承包商资质与安全培训状态 |
+| POST | `/admin/vms/contractor-credentials` | ADMIN | 登记承包商资质 |
+| PUT | `/admin/vms/contractor-credentials/{id}` | ADMIN | 更新资质有效期、培训和冻结状态 |
+| GET | `/vms/appointments/{id}/documents` | OPERATOR | 查询预约合规材料 |
+| POST | `/vms/appointments/{id}/documents` | OPERATOR | 提交预约材料元数据与 SHA-256 |
+| POST | `/admin/vms/documents/{id}/review` | ADMIN | 审核通过或驳回预约材料 |
+| GET | `/vms/appointments/{id}/compliance` | OPERATOR | 获取预约准入合规评估 |
+| GET | `/admin/vms/emergency/muster` | ADMIN | 生成指定园区实时在园清点快照 |
+| GET | `/admin/vms/exports/appointments` | ADMIN | 按园区和日期范围导出预约 CSV |
 
 风险评估请求包含 `backlog`、`delayedItems`、`criticalItems`、`capacityUtilization`、`dataCompleteness`，均为非负整数；百分比字段范围为 0–100。
 
@@ -77,5 +89,19 @@ Base URL：`http://localhost:8080/api`。除公开信息外均使用 HTTP Basic 
 ```
 
 访客证操作的 `action` 支持 `RETURN` 与 `REPORT_LOST`。通知任务采用应用内 outbox 基线：站内消息可本地完成派发，外部通道未配置时保留失败原因、尝试次数和下次重试时间，部署方可替换为企业微信、短信或自有消息适配器。
+
+## 多园区与合规准入
+
+预约中的 `siteCode` 必须对应一个“启用”园区，服务端按“园区 + 日期 + 时段”计算已占用人数，并同时应用园区容量和系统容量上限。不存在或停用园区会返回 HTTP 409。
+
+材料提交仅保存文件名、类型和 64 位 SHA-256 校验值，不保存二进制文件。生产环境可以把文件写入对象存储，再将对象键作为 `fileName`、内容摘要作为 `checksum` 提交：
+
+```json
+{"documentType":"安全承诺书","fileName":"oss://vms/VMS-001/safety.pdf","checksum":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}
+```
+
+受限区或其他关注预约需要身份证明；受限区额外需要安全承诺书；施工、维保或承包作业额外需要作业人员清单和有效承包商资质。所有必需材料必须由管理员审核通过，最终安保复核才可完成。
+
+应急清点使用 `siteCode` 参数，返回实时在园人数、预约数、接待人、实体访客证、最后门禁事件和园区集合点。CSV 导出使用 `siteCode`、`from`、`to` 参数，日期范围不得超过一年，并且仅 ADMIN 角色可调用。
 
 > 上海如静知华信息科技有限公司 · [https://www.zhuatech.cn/](https://www.zhuatech.cn/)

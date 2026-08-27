@@ -31,11 +31,13 @@ public class VmsManagementService {
     private final AuditLogRepository auditLogs;
     private final ApprovalTaskRepository approvalTasks;
     private final NotificationTaskRepository notificationTasks;
+    private final EnterpriseComplianceService compliance;
 
     public VmsManagementService(AppointmentRepository appointments, VisitorProfileRepository visitors,
                                 SiteResourceRepository resources, RiskAlertRepository alerts,
                                 SystemSettingRepository settingRepository, AuditLogRepository auditLogs,
-                                ApprovalTaskRepository approvalTasks, NotificationTaskRepository notificationTasks) {
+                                ApprovalTaskRepository approvalTasks, NotificationTaskRepository notificationTasks,
+                                EnterpriseComplianceService compliance) {
         this.appointments = appointments;
         this.visitors = visitors;
         this.resources = resources;
@@ -44,6 +46,7 @@ public class VmsManagementService {
         this.auditLogs = auditLogs;
         this.approvalTasks = approvalTasks;
         this.notificationTasks = notificationTasks;
+        this.compliance = compliance;
     }
 
     public Overview overview() {
@@ -63,6 +66,7 @@ public class VmsManagementService {
         visitors.findByPhone(request.visitorPhone()).filter(VisitorProfile::isBlacklisted).ifPresent(visitor -> {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "该访客在黑名单中，预约已被拦截");
         });
+        compliance.requireActiveSite(request.siteCode());
         enforceCapacity(request);
         String no = uniqueNo("VMS");
         String risk = request.accessArea().contains("受限") || request.visitorCount() >= 8 ? "关注" : "正常";
@@ -95,11 +99,13 @@ public class VmsManagementService {
         visitors.findByPhone(request.visitorPhone()).filter(VisitorProfile::isBlacklisted).ifPresent(visitor -> {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "该访客在黑名单中，预约修改已被拦截");
         });
+        compliance.requireActiveSite(request.siteCode());
         enforceCapacityForUpdate(appointment, request);
         cancelPendingApproval(appointment, "预约信息修改，原审批任务失效");
         appointment.update(request.visitorName(), request.visitorCompany(), request.visitorPhone(),
             request.hostName(), request.purpose(), request.visitDate(), request.timeSlot(),
             request.accessArea(), request.visitorCount());
+        appointment.moveToSite(request.siteCode());
         appointment.changeRiskLevel(request.accessArea().contains("受限") || request.visitorCount() >= 8 ? "关注" : "正常");
         appointment.transition("待审批");
         appointment.moveApprovalStage("接待人审批");
@@ -301,18 +307,21 @@ public class VmsManagementService {
         notificationTasks.save(new NotificationTask(referenceNo, channel, recipient, templateCode));
     }
     private void enforceCapacity(AppointmentRequest request) {
-        long occupied = appointments.activeVisitorCount(request.visitDate(), request.timeSlot(),
+        String siteCode = request.siteCode() == null || request.siteCode().isBlank() ? "SH-HQ" : request.siteCode();
+        long occupied = appointments.activeVisitorCount(siteCode, request.visitDate(), request.timeSlot(),
             List.of("待审批", "安保复核", "已审批", "已到访"));
-        int capacity = settingInt("slotCapacity", 100);
+        int capacity = Math.min(settingInt("slotCapacity", 100), compliance.requireActiveSite(siteCode).getSlotCapacity());
         if (occupied + request.visitorCount() > capacity) throw new ResponseStatusException(HttpStatus.CONFLICT,
             "该预约时段园区容量不足：已预约 " + occupied + " 人，容量上限 " + capacity + " 人");
     }
     private void enforceCapacityForUpdate(Appointment current, AppointmentRequest request) {
-        long occupied = appointments.activeVisitorCount(request.visitDate(), request.timeSlot(),
+        String siteCode = request.siteCode() == null || request.siteCode().isBlank() ? "SH-HQ" : request.siteCode();
+        long occupied = appointments.activeVisitorCount(siteCode, request.visitDate(), request.timeSlot(),
             List.of("待审批", "安保复核", "已审批", "已到访"));
-        if (current.getVisitDate().equals(request.visitDate()) && current.getTimeSlot().equals(request.timeSlot()))
+        if (current.getSiteCode().equals(siteCode) && current.getVisitDate().equals(request.visitDate())
+                && current.getTimeSlot().equals(request.timeSlot()))
             occupied -= current.getVisitorCount();
-        int capacity = settingInt("slotCapacity", 100);
+        int capacity = Math.min(settingInt("slotCapacity", 100), compliance.requireActiveSite(siteCode).getSlotCapacity());
         if (occupied + request.visitorCount() > capacity) throw new ResponseStatusException(HttpStatus.CONFLICT,
             "修改后超过该时段容量上限 " + capacity + " 人");
     }
@@ -331,6 +340,8 @@ public class VmsManagementService {
         ApprovalTask task = pendingApproval(appointment);
         if ("安保复核".equals(appointment.getStatus()) && !isAdmin())
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "安保复核必须由管理员或安保授权账号完成");
+        if ("安保复核".equals(appointment.getStatus()))
+            compliance.requireReadyForSecurityApproval(appointment);
         if (task != null) task.decide("已通过", operator(), safeRemark(remark));
         if ("待审批".equals(appointment.getStatus()) && "关注".equals(appointment.getRiskLevel())) {
             appointment.transition("安保复核");

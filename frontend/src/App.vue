@@ -24,6 +24,12 @@ const approvalTasks = ref([])
 const badges = ref([])
 const accessEvents = ref([])
 const notifications = ref([])
+const sites = ref([])
+const contractorCredentials = ref([])
+const appointmentDocuments = ref([])
+const complianceAssessment = ref(null)
+const muster = reactive({ siteCode: 'SH-HQ', siteName: '', assemblyPoint: '', visitorsOnSite: 0, appointmentCount: 0, people: [] })
+const musterSiteCode = ref('SH-HQ')
 const approvalBoard = reactive({ pending: 0, overdue: 0, securityReview: 0, highRisk: 0, recentTasks: [] })
 const fieldDashboard = reactive({ availableBadges: 0, issuedBadges: 0, lostBadges: 0, deniedAccessEvents: 0, pendingNotifications: 0, failedNotifications: 0 })
 const retentionPreview = reactive({ retentionDays: 180, threshold: '', visitorProfiles: 0, auditLogs: 0, action: '' })
@@ -34,9 +40,11 @@ const nav = [
   { label: '资源中心', icon: '资' }, { label: '风险预警', icon: '险' },
   { label: '企业管控', icon: '企' }, { label: '审计报表', icon: '报' }, { label: '基础设置', icon: '设' }
 ]
-const appointmentForm = reactive({ visitorName: '', visitorCompany: '', visitorPhone: '', hostName: '', purpose: '', visitDate: '2026-08-27', timeSlot: '09:00-11:00', accessArea: 'A座会议中心', visitorCount: 1 })
+const appointmentForm = reactive({ visitorName: '', visitorCompany: '', visitorPhone: '', hostName: '', purpose: '', visitDate: '2026-08-27', timeSlot: '09:00-11:00', accessArea: 'A座会议中心', visitorCount: 1, siteCode: 'SH-HQ' })
 const exceptionForm = reactive({ type: '现场异常', level: '中', title: '', relatedNo: '', assignee: '园区安保中心' })
 const resourceForm = reactive({ id: null, type: '接待人', code: '', name: '', department: '', status: '启用' })
+const siteForm = reactive({ siteCode: '', siteName: '', address: '', timezone: 'Asia/Shanghai', slotCapacity: 100, assemblyPoint: '', status: '启用' })
+const credentialForm = reactive({ companyName: '', credentialType: '施工服务资质', credentialNo: '', validUntil: '2027-12-31', safetyTrainingCompleted: true, status: '有效' })
 const passCredential = ref('VMS-20260826-102')
 const passVerification = ref(null)
 const accessForm = reactive({ appointmentNo: 'VMS-20260826-102', gateCode: 'GATE-01', direction: 'IN' })
@@ -67,7 +75,7 @@ function localAction(item, action) {
 }
 async function loadData() {
   loading.value = true
-  const calls = await Promise.allSettled([api.appointments(), api.visitors(), api.resources(), api.alerts(), api.settings(), api.report(), api.auditLogs(), api.approvalTasks(), api.approvalBoard(), api.badges(), api.accessEvents(), api.fieldDashboard(), api.notifications(), api.retentionPreview()])
+  const calls = await Promise.allSettled([api.appointments(), api.visitors(), api.resources(), api.alerts(), api.settings(), api.report(), api.auditLogs(), api.approvalTasks(), api.approvalBoard(), api.badges(), api.accessEvents(), api.fieldDashboard(), api.notifications(), api.retentionPreview(), api.sites(), api.contractorCredentials(), api.muster(musterSiteCode.value)])
   if (calls[0].status === 'fulfilled') appointments.value = calls[0].value
   if (calls[1].status === 'fulfilled') visitors.value = calls[1].value
   if (calls[2].status === 'fulfilled') resources.value = calls[2].value
@@ -82,6 +90,9 @@ async function loadData() {
   if (calls[11].status === 'fulfilled') Object.assign(fieldDashboard, calls[11].value)
   if (calls[12].status === 'fulfilled') notifications.value = calls[12].value
   if (calls[13].status === 'fulfilled') Object.assign(retentionPreview, calls[13].value)
+  if (calls[14].status === 'fulfilled') sites.value = calls[14].value
+  if (calls[15].status === 'fulfilled') contractorCredentials.value = calls[15].value
+  if (calls[16].status === 'fulfilled') Object.assign(muster, calls[16].value)
   loading.value = false
 }
 function openAppointment(item) { selected.value = item; modal.value = 'detail' }
@@ -96,7 +107,7 @@ async function runAction(item, action) {
 async function createAppointment() {
   if (!appointmentForm.visitorName || !appointmentForm.visitorPhone || !appointmentForm.hostName || !appointmentForm.purpose) return announce('请完整填写访客、手机、接待人与来访事由')
   let created
-  try { created = await api.createAppointment({ ...appointmentForm, visitorCount: Number(appointmentForm.visitorCount), siteCode: 'SH-HQ', clientRequestId: window.crypto?.randomUUID?.() || `WEB-${Date.now()}` }) }
+  try { created = await api.createAppointment({ ...appointmentForm, visitorCount: Number(appointmentForm.visitorCount), clientRequestId: window.crypto?.randomUUID?.() || `WEB-${Date.now()}` }) }
   catch {
     created = { ...appointmentForm, id: Date.now(), appointmentNo: `VMS-DEMO-${String(Date.now()).slice(-4)}`, visitorCount: Number(appointmentForm.visitorCount), status: '待审批', riskLevel: appointmentForm.accessArea.includes('受限') ? '关注' : '正常' }
   }
@@ -200,6 +211,74 @@ async function retryNotification(item) {
   try { await api.retryNotification(item.id); await loadData(); announce('通知已进入立即重试队列') }
   catch (error) { announce(error.message) }
 }
+async function openCompliance(item) {
+  selected.value = item
+  modal.value = 'compliance'
+  try {
+    const [documents, assessment] = await Promise.all([api.appointmentDocuments(item.id), api.compliance(item.id)])
+    appointmentDocuments.value = documents
+    complianceAssessment.value = assessment
+  } catch (error) { announce(error.message) }
+}
+async function submitComplianceDocument(type) {
+  const checksum = String(Date.now()).padEnd(64, '0').slice(0, 64)
+  try {
+    await api.submitDocument(selected.value.id, { documentType: type, fileName: `${selected.value.appointmentNo}-${type}.pdf`, checksum })
+    await openCompliance(selected.value)
+    announce(`${type}已提交审核`)
+  } catch (error) { announce(error.message) }
+}
+async function reviewComplianceDocument(item, approved) {
+  try {
+    await api.reviewDocument(item.id, approved, approved ? '管理端核验材料真实有效' : '材料内容不完整，请重新提交')
+    await openCompliance(selected.value)
+    announce(approved ? '材料审核通过' : '材料已驳回')
+  } catch (error) { announce(error.message) }
+}
+async function refreshMuster() {
+  try { Object.assign(muster, await api.muster(musterSiteCode.value)); announce('应急清点名单已按实时在园状态更新') }
+  catch (error) { announce(error.message) }
+}
+async function exportSiteAppointments() {
+  try { await api.exportAppointments(musterSiteCode.value, '2026-01-01', '2026-12-31'); announce('预约 CSV 已生成') }
+  catch (error) { announce(error.message) }
+}
+async function saveSite() {
+  if (!siteForm.siteCode || !siteForm.siteName || !siteForm.address || !siteForm.assemblyPoint) return announce('请完整填写园区编码、名称、地址和集合点')
+  try {
+    await api.createSite({ ...siteForm, slotCapacity: Number(siteForm.slotCapacity) })
+    modal.value = ''
+    await loadData()
+    announce('企业园区已新增并启用')
+  } catch (error) { announce(error.message) }
+}
+async function toggleSite(item) {
+  try {
+    await api.updateSite(item.id, { siteCode: item.siteCode, siteName: item.siteName, address: item.address,
+      timezone: item.timezone, slotCapacity: item.slotCapacity, assemblyPoint: item.assemblyPoint,
+      status: item.status === '启用' ? '停用' : '启用' })
+    await loadData()
+    announce(item.status === '启用' ? '园区已停用，新的预约将被拦截' : '园区已恢复启用')
+  } catch (error) { announce(error.message) }
+}
+async function saveCredential() {
+  if (!credentialForm.companyName || !credentialForm.credentialNo) return announce('请填写承包商名称和证书编号')
+  try {
+    await api.createCredential({ ...credentialForm })
+    modal.value = ''
+    await loadData()
+    announce('承包商资质已登记')
+  } catch (error) { announce(error.message) }
+}
+async function toggleCredential(item) {
+  try {
+    await api.updateCredential(item.id, { companyName: item.companyName, credentialType: item.credentialType,
+      credentialNo: item.credentialNo, validUntil: item.validUntil,
+      safetyTrainingCompleted: item.safetyTrainingCompleted, status: item.status === '有效' ? '冻结' : '有效' })
+    await loadData()
+    announce(item.status === '有效' ? '承包商资质已冻结' : '承包商资质已恢复')
+  } catch (error) { announce(error.message) }
+}
 function maskPhone(phone) { return phone ? phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '-' }
 function showMobile(view) { mobileView.value = view; mode.value = 'mobile' }
 onMounted(loadData)
@@ -211,7 +290,7 @@ onMounted(loadData)
       <aside class="sidebar">
         <div class="brand"><span class="mark">ZH</span><div><b>{{ domain.shortName }}</b><small>访客预约与通行管理</small></div></div>
         <nav><button v-for="item in nav" :key="item.label" :class="{ active: active === item.label }" @click="active = item.label"><i>{{ item.icon }}</i><span>{{ item.label }}</span></button></nav>
-        <div class="side-foot"><span>社区源码版 · V1.6</span><p>{{ domain.company }}</p><a :href="domain.website" target="_blank">访问知华科技官网</a></div>
+        <div class="side-foot"><span>社区源码版 · V1.7</span><p>{{ domain.company }}</p><a :href="domain.website" target="_blank">访问知华科技官网</a></div>
       </aside>
 
       <main class="main">
@@ -250,7 +329,7 @@ onMounted(loadData)
 
           <template v-else-if="active === '企业管控'">
             <section class="page-title"><div><p class="eyebrow">ENTERPRISE CONTROL</p><h1>企业接待控制台</h1><p>从准入审批延伸到访客证、门禁事件、消息派发和数据合规的完整现场闭环</p></div><button class="primary" @click="loadData">刷新运行数据</button></section>
-            <div class="tabs enterprise-tabs"><button v-for="tab in ['审批治理','现场通行','消息与合规']" :key="tab" :class="{ active: enterpriseTab === tab }" @click="enterpriseTab=tab">{{ tab }}</button></div>
+            <div class="tabs enterprise-tabs"><button v-for="tab in ['审批治理','现场通行','消息与合规','资质与应急']" :key="tab" :class="{ active: enterpriseTab === tab }" @click="enterpriseTab=tab">{{ tab }}</button></div>
 
             <template v-if="enterpriseTab === '审批治理'">
               <section class="metrics enterprise-metrics"><article><div><p>待处理审批</p><strong>{{ approvalBoard.pending }}<small>项</small></strong></div><span>接待人与安保任务</span></article><article><div><p>审批已超时</p><strong>{{ approvalBoard.overdue }}<small>项</small></strong></div><span>超过 {{ settings.approvalSlaHours }} 小时 SLA</span></article><article><div><p>安保复核</p><strong>{{ approvalBoard.securityReview }}<small>项</small></strong></div><span>受限区与高风险预约</span></article><article><div><p>风险关注</p><strong>{{ approvalBoard.highRisk }}<small>单</small></strong></div><span>尚未完成准入审批</span></article></section>
@@ -267,9 +346,14 @@ onMounted(loadData)
               <section class="panel event-panel"><div class="panel-head"><div><h2>最近门禁事件</h2><p>允许与拒绝均持久化留痕，便于事后核查</p></div><span class="subtle-tag">最近 100 条</span></div><div class="data-table event-table"><div class="row head"><span>时间</span><span>预约编号</span><span>门禁 / 方向</span><span>判定</span><span>判定依据</span><span>操作人</span></div><div class="row" v-for="item in accessEvents" :key="item.id"><span>{{ item.occurredAt?.replace('T',' ').slice(0,16) }}</span><span class="mono">{{ item.appointmentNo }}</span><span><b>{{ item.gateCode }}</b><small>{{ item.direction === 'IN' ? '入场' : '离场' }}</small></span><span><i class="status" :class="item.result">{{ item.result }}</i></span><span>{{ item.reason }}</span><span>{{ item.operatorName }}</span></div><div v-if="!accessEvents.length" class="empty-state">执行一次通行核验后，门禁事件将在这里展示。</div></div></section>
             </template>
 
-            <template v-else>
+            <template v-else-if="enterpriseTab === '消息与合规'">
               <section class="metrics field-metrics"><article><div><p>待发送通知</p><strong>{{ fieldDashboard.pendingNotifications }}<small>条</small></strong></div><span>等待消息工作器</span></article><article><div><p>发送失败</p><strong>{{ fieldDashboard.failedNotifications }}<small>条</small></strong></div><span>支持人工重试</span></article><article><div><p>待清理档案</p><strong>{{ retentionPreview.visitorProfiles }}<small>份</small></strong></div><span>只预检不自动删除</span></article><article><div><p>待清理日志</p><strong>{{ retentionPreview.auditLogs }}<small>条</small></strong></div><span>{{ retentionPreview.retentionDays }} 天留存策略</span></article></section>
               <section class="message-grid"><article class="panel"><div class="panel-head"><div><h2>可靠消息任务</h2><p>业务操作写入通知任务，外部通道失败后保留原因与重试时间</p></div><button class="primary compact" @click="dispatchNotifications">执行消息派发</button></div><div class="data-table notice-table"><div class="row head"><span>创建时间</span><span>业务编号 / 模板</span><span>渠道</span><span>接收人</span><span>状态 / 次数</span><span>操作</span></div><div class="row" v-for="item in notifications" :key="item.id"><span>{{ item.createdAt?.replace('T',' ').slice(0,16) }}</span><span><b class="mono">{{ item.referenceNo }}</b><small>{{ item.templateCode }}</small></span><span>{{ item.channel }}</span><span>{{ item.recipient }}</span><span><i class="status" :class="item.status">{{ item.status }}</i><small>尝试 {{ item.attempts }} 次</small></span><span><button v-if="item.status==='失败'" class="link" @click="retryNotification(item)">立即重试</button><small v-else>{{ item.lastError || '-' }}</small></span></div></div></article><aside class="panel retention-card"><div class="panel-head"><div><h2>数据留存预检</h2><p>COMPLIANCE PREVIEW</p></div><span class="online">只读检查</span></div><strong>{{ retentionPreview.retentionDays }}</strong><span>天留存周期</span><dl><div><dt>计算阈值</dt><dd>{{ retentionPreview.threshold?.replace('T',' ').slice(0,16) }}</dd></div><div><dt>超期访客档案</dt><dd>{{ retentionPreview.visitorProfiles }} 份</dd></div><div><dt>超期审计日志</dt><dd>{{ retentionPreview.auditLogs }} 条</dd></div></dl><p>{{ retentionPreview.action }}</p><button class="outline" @click="active='基础设置'">调整留存策略</button></aside></section>
+            </template>
+
+            <template v-else>
+              <div class="section-command"><div><h2>企业园区</h2><p>园区停用后，新预约和清点请求会立即被拦截。</p></div><button class="primary" @click="modal='site'">＋ 新增园区</button></div><section class="site-strip"><article v-for="item in sites" :key="item.id" class="panel site-card"><div><span class="site-code">{{ item.siteCode }}</span><i class="status" :class="item.status">{{ item.status }}</i></div><h2>{{ item.siteName }}</h2><p>{{ item.address }}</p><dl><div><dt>单时段容量</dt><dd>{{ item.slotCapacity }} 人</dd></div><div><dt>应急集合点</dt><dd>{{ item.assemblyPoint }}</dd></div></dl><button class="text-button" @click="toggleSite(item)">{{ item.status==='启用' ? '停用园区' : '恢复园区' }}</button></article></section>
+              <section class="compliance-grid"><article class="panel"><div class="panel-head"><div><h2>承包商资质台账</h2><p>按企业维护证书有效期、安全培训和冻结状态</p></div><button class="primary compact" @click="modal='credential'">＋ 登记资质</button></div><div class="data-table credential-table"><div class="row head"><span>承包商</span><span>资质类型 / 编号</span><span>有效期</span><span>安全培训</span><span>状态</span><span>操作</span></div><div class="row" v-for="item in contractorCredentials" :key="item.id"><span><b>{{ item.companyName }}</b></span><span><b>{{ item.credentialType }}</b><small class="mono">{{ item.credentialNo }}</small></span><span>{{ item.validUntil }}</span><span>{{ item.safetyTrainingCompleted ? '已完成' : '未完成' }}</span><span><i class="status" :class="item.status">{{ item.status }}</i></span><span><button class="link" @click="toggleCredential(item)">{{ item.status==='有效' ? '冻结' : '恢复' }}</button></span></div></div></article><aside class="panel muster-card"><div class="panel-head"><div><h2>应急在园清点</h2><p>基于真实签到状态、访客证和最后门禁事件</p></div><span class="online">实时名单</span></div><label>清点园区<select v-model="musterSiteCode" @change="refreshMuster"><option v-for="item in sites.filter(v=>v.status==='启用')" :key="item.siteCode" :value="item.siteCode">{{ item.siteName }}</option></select></label><div class="muster-total"><strong>{{ muster.visitorsOnSite }}</strong><span>名访客在园 · {{ muster.appointmentCount }} 单预约</span></div><p><b>集合点：</b>{{ muster.assemblyPoint }}</p><div class="muster-people"><div v-for="item in muster.people" :key="item.appointmentNo"><span><b>{{ item.visitorName }} · {{ item.visitorCount }}人</b><small>{{ item.hostName }} / {{ item.badgeNo }}</small></span><i>{{ item.lastGate }}</i></div><small v-if="!muster.people.length">当前园区暂无在园访客</small></div><div class="muster-actions"><button class="outline" @click="refreshMuster">刷新名单</button><button class="primary" @click="exportSiteAppointments">导出预约 CSV</button></div></aside></section>
             </template>
           </template>
 
@@ -301,7 +385,7 @@ onMounted(loadData)
           <section class="mobile-section"><div class="mobile-title"><h2>待办事项</h2><a @click="mobileView='事项'">查看全部</a></div><article class="mobile-task" v-for="item in appointments.filter(v=>['待审批','已审批','已到访'].includes(v.status)).slice(0,3)" :key="item.id" @click="selected=item;mobileView='详情'"><i :class="item.riskLevel"></i><div><b>{{ item.visitorName }} · {{ item.purpose }}</b><span>{{ item.timeSlot }} / {{ item.accessArea }}</span></div><em>{{ item.status }}</em></article></section>
         </template>
         <template v-else-if="mobileView==='预约'">
-          <header class="mobile-page-head"><button @click="mobileView='首页'">←</button><h1>发起访客预约</h1><span></span></header><section class="mobile-form"><label>访客姓名<input v-model="appointmentForm.visitorName" placeholder="请输入姓名" /></label><label>访客手机<input v-model="appointmentForm.visitorPhone" placeholder="用于到访核验" /></label><label>访客单位<input v-model="appointmentForm.visitorCompany" placeholder="公司或组织名称" /></label><label>接待人<input v-model="appointmentForm.hostName" placeholder="内部接待人" /></label><label>来访事由<input v-model="appointmentForm.purpose" placeholder="请说明来访目的" /></label><div class="form-pair"><label>到访日期<input v-model="appointmentForm.visitDate" type="date" /></label><label>人数<input v-model="appointmentForm.visitorCount" type="number" /></label></div><label>访问区域<select v-model="appointmentForm.accessArea"><option>A座会议中心</option><option>A座会客区</option><option>B座工程区</option><option>受限区-数据中心</option></select></label><button class="mobile-primary" @click="createAppointment();mobileView='首页'">提交预约</button></section>
+          <header class="mobile-page-head"><button @click="mobileView='首页'">←</button><h1>发起访客预约</h1><span></span></header><section class="mobile-form"><label>访客姓名<input v-model="appointmentForm.visitorName" placeholder="请输入姓名" /></label><label>访客手机<input v-model="appointmentForm.visitorPhone" placeholder="用于到访核验" /></label><label>访客单位<input v-model="appointmentForm.visitorCompany" placeholder="公司或组织名称" /></label><label>接待人<input v-model="appointmentForm.hostName" placeholder="内部接待人" /></label><label>来访事由<input v-model="appointmentForm.purpose" placeholder="请说明来访目的" /></label><div class="form-pair"><label>到访日期<input v-model="appointmentForm.visitDate" type="date" /></label><label>人数<input v-model="appointmentForm.visitorCount" type="number" /></label></div><label>预约园区<select v-model="appointmentForm.siteCode"><option v-for="item in sites.filter(v=>v.status==='启用')" :key="item.siteCode" :value="item.siteCode">{{ item.siteName }}</option></select></label><label>访问区域<select v-model="appointmentForm.accessArea"><option>A座会议中心</option><option>A座会客区</option><option>B座工程区</option><option>受限区-数据中心</option></select></label><button class="mobile-primary" @click="createAppointment();mobileView='首页'">提交预约</button></section>
         </template>
         <template v-else-if="mobileView==='签到'">
           <header class="mobile-page-head"><button @click="mobileView='首页'">←</button><h1>访客签到</h1><span></span></header><section class="scan-card"><div class="scan-frame"><span></span><b>请扫描访客预约码</b></div><p>或由前台输入预约编号 / 六位通行码完成核验</p><input v-model="passCredential" placeholder="输入预约编号或六位通行码" /><button class="mobile-primary" @click="verifyCredential">查询预约</button><div v-if="passVerification" class="verify-result" :class="{ invalid:!passVerification.valid }"><b>{{ passVerification.valid ? '凭证有效' : '核验未通过' }}</b><p>{{ passVerification.message }}</p><span v-if="passVerification.appointment">{{ passVerification.appointment.visitorName }} · {{ passVerification.appointment.accessArea }}</span></div></section><section class="mobile-tip"><b>签到核验要求</b><p>请核对访客姓名、接待人、访问区域和有效时段。受限区域还需安保人员复核。</p></section>
@@ -317,9 +401,12 @@ onMounted(loadData)
     </div>
 
     <div v-if="modal" class="modal-mask" @click.self="modal=''">
-      <section v-if="modal==='detail' && selected" class="modal detail-modal"><div class="modal-head"><div><small>预约详情</small><h2>{{ selected.appointmentNo }}</h2></div><button @click="modal=''">×</button></div><div class="detail-status"><i class="status" :class="selected.status">{{ selected.status }}</i><span>风险等级：<b>{{ selected.riskLevel }}</b></span></div><dl class="detail-grid"><div><dt>访客</dt><dd>{{ selected.visitorName }} · {{ selected.visitorCount }} 人</dd><small>{{ selected.visitorCompany }} / {{ maskPhone(selected.visitorPhone) }}</small></div><div><dt>接待人</dt><dd>{{ selected.hostName }}</dd><small>{{ selected.accessArea }}</small></div><div><dt>来访安排</dt><dd>{{ selected.visitDate }}</dd><small>{{ selected.timeSlot }}</small></div><div><dt>来访事由</dt><dd>{{ selected.purpose }}</dd><small v-if="selected.passCode">通行码 {{ selected.passCode }}</small></div></dl><div class="flow-line"><span class="done">提交预约</span><span :class="{done:['已审批','已到访','已离场'].includes(selected.status)}">接待审批</span><span :class="{done:['已到访','已离场'].includes(selected.status)}">到访签到</span><span :class="{done:selected.status==='已离场'}">离场确认</span></div><div class="modal-actions"><button class="danger-ghost" v-if="!['已离场','已取消'].includes(selected.status)" @click="runAction(selected,'CANCEL')">取消预约</button><span></span><button v-if="selected.status==='待审批'" class="outline" @click="runAction(selected,'REJECT')">驳回</button><button v-if="selected.status==='待审批'" class="primary" @click="runAction(selected,'APPROVE')">通过并发码</button><button v-if="selected.status==='已审批'" class="primary" @click="runAction(selected,'CHECK_IN')">确认签到</button><button v-if="selected.status==='已到访'" class="primary" @click="runAction(selected,'CHECK_OUT')">确认离场</button></div></section>
+      <section v-if="modal==='detail' && selected" class="modal detail-modal"><div class="modal-head"><div><small>预约详情</small><h2>{{ selected.appointmentNo }}</h2></div><button @click="modal=''">×</button></div><div class="detail-status"><i class="status" :class="selected.status">{{ selected.status }}</i><span>风险等级：<b>{{ selected.riskLevel }}</b></span><span>园区：<b>{{ selected.siteCode }}</b></span></div><dl class="detail-grid"><div><dt>访客</dt><dd>{{ selected.visitorName }} · {{ selected.visitorCount }} 人</dd><small>{{ selected.visitorCompany }} / {{ maskPhone(selected.visitorPhone) }}</small></div><div><dt>接待人</dt><dd>{{ selected.hostName }}</dd><small>{{ selected.accessArea }}</small></div><div><dt>来访安排</dt><dd>{{ selected.visitDate }}</dd><small>{{ selected.timeSlot }}</small></div><div><dt>来访事由</dt><dd>{{ selected.purpose }}</dd><small v-if="selected.passCode">通行码 {{ selected.passCode }}</small></div></dl><div class="flow-line"><span class="done">提交预约</span><span :class="{done:['已审批','已到访','已离场'].includes(selected.status)}">接待审批</span><span :class="{done:['已到访','已离场'].includes(selected.status)}">到访签到</span><span :class="{done:selected.status==='已离场'}">离场确认</span></div><div class="modal-actions"><button class="danger-ghost" v-if="!['已离场','已取消'].includes(selected.status)" @click="runAction(selected,'CANCEL')">取消预约</button><button v-if="selected.riskLevel==='关注'" class="outline" @click="openCompliance(selected)">材料合规</button><span></span><button v-if="selected.status==='待审批'" class="outline" @click="runAction(selected,'REJECT')">驳回</button><button v-if="selected.status==='待审批'" class="primary" @click="runAction(selected,'APPROVE')">通过并发码</button><button v-if="selected.status==='已审批'" class="primary" @click="runAction(selected,'CHECK_IN')">确认签到</button><button v-if="selected.status==='已到访'" class="primary" @click="runAction(selected,'CHECK_OUT')">确认离场</button></div></section>
+      <section v-else-if="modal==='compliance' && selected" class="modal compliance-modal"><div class="modal-head"><div><small>COMPLIANCE GATE</small><h2>预约材料与准入校验</h2></div><button @click="modal=''">×</button></div><div class="compliance-result" :class="{ ready:complianceAssessment?.ready }"><strong>{{ complianceAssessment?.ready ? '合规校验通过' : '存在准入阻断项' }}</strong><p>{{ complianceAssessment?.conclusion }}</p><ul v-if="complianceAssessment?.blockers?.length"><li v-for="item in complianceAssessment.blockers" :key="item">{{ item }}</li></ul></div><div class="document-actions"><span>快捷提交所需材料</span><button v-for="type in complianceAssessment?.requiredDocuments || []" :key="type" class="outline" :disabled="appointmentDocuments.some(v=>v.documentType===type && v.status!=='已驳回')" @click="submitComplianceDocument(type)">＋ {{ appointmentDocuments.some(v=>v.documentType===type && v.status==='已驳回') ? '重新提交' : '' }}{{ type }}</button></div><div class="document-list"><div v-for="item in appointmentDocuments" :key="item.id"><span><b>{{ item.documentType }}</b><small>{{ item.fileName }} · SHA-256 {{ item.checksum.slice(0,10) }}…</small></span><i class="status" :class="item.status">{{ item.status }}</i><span class="review-actions"><button v-if="item.status==='待审核'" @click="reviewComplianceDocument(item,false)">驳回</button><button v-if="item.status==='待审核'" class="primary" @click="reviewComplianceDocument(item,true)">通过</button><small v-else>{{ item.reviewedBy || '-' }} · {{ item.reviewComment || '-' }}</small></span></div></div></section>
+      <section v-else-if="modal==='site'" class="modal form-modal"><div class="modal-head"><div><small>ENTERPRISE SITE</small><h2>新增企业园区</h2></div><button @click="modal=''">×</button></div><div class="form-grid"><label>园区编码<input v-model="siteForm.siteCode" placeholder="例如 BJ-HQ" /></label><label>园区名称<input v-model="siteForm.siteName" placeholder="例如 北京运营中心" /></label><label class="full">园区地址<input v-model="siteForm.address" placeholder="办公园区地址" /></label><label>时区<input v-model="siteForm.timezone" /></label><label>单时段容量<input v-model="siteForm.slotCapacity" type="number" min="1" max="10000" /></label><label class="full">应急集合点<input v-model="siteForm.assemblyPoint" placeholder="例如 园区南广场 A 集合点" /></label></div><div class="modal-actions"><span></span><button class="outline" @click="modal=''">取消</button><button class="primary" @click="saveSite">保存园区</button></div></section>
+      <section v-else-if="modal==='credential'" class="modal form-modal"><div class="modal-head"><div><small>CONTRACTOR CREDENTIAL</small><h2>登记承包商资质</h2></div><button @click="modal=''">×</button></div><div class="form-grid"><label class="full">承包商名称<input v-model="credentialForm.companyName" placeholder="必须与预约来访单位一致" /></label><label>资质类型<input v-model="credentialForm.credentialType" /></label><label>证书编号<input v-model="credentialForm.credentialNo" /></label><label>有效期<input v-model="credentialForm.validUntil" type="date" /></label><label>安全培训<select v-model="credentialForm.safetyTrainingCompleted"><option :value="true">已完成</option><option :value="false">未完成</option></select></label></div><div class="form-note">施工、维保和承包作业在最终安保复核时会校验企业名称、证书有效期、冻结状态和安全培训。</div><div class="modal-actions"><span></span><button class="outline" @click="modal=''">取消</button><button class="primary" @click="saveCredential">保存资质</button></div></section>
       <section v-else-if="modal==='resource'" class="modal form-modal"><div class="modal-head"><div><small>SITE RESOURCE</small><h2>{{ resourceForm.id ? '编辑园区资源' : '新增园区资源' }}</h2></div><button @click="modal=''">×</button></div><div class="form-grid"><label>资源类型<select v-model="resourceForm.type"><option>接待人</option><option>访问区域</option><option>门禁点</option></select></label><label>资源编码<input v-model="resourceForm.code" :disabled="Boolean(resourceForm.id)" placeholder="例如 HOST-003" /></label><label>资源名称<input v-model="resourceForm.name" placeholder="资源显示名称" /></label><label>责任部门<input v-model="resourceForm.department" placeholder="责任部门或团队" /></label><label>运行状态<select v-model="resourceForm.status"><option>启用</option><option>停用</option><option>开放</option><option>审批开放</option><option>在线</option><option>离线</option></select></label></div><div class="modal-actions"><span></span><button class="outline" @click="modal=''">取消</button><button class="primary" @click="saveResource">保存资源</button></div></section>
-      <section v-else-if="modal==='appointment'" class="modal form-modal"><div class="modal-head"><div><small>NEW APPOINTMENT</small><h2>新建访客预约</h2></div><button @click="modal=''">×</button></div><div class="form-grid"><label>访客姓名<input v-model="appointmentForm.visitorName" placeholder="请输入姓名" /></label><label>手机号码<input v-model="appointmentForm.visitorPhone" placeholder="用于签到核验" /></label><label>访客单位<input v-model="appointmentForm.visitorCompany" placeholder="公司或组织名称" /></label><label>接待人<input v-model="appointmentForm.hostName" placeholder="内部接待人员" /></label><label class="full">来访事由<input v-model="appointmentForm.purpose" placeholder="请准确填写来访目的" /></label><label>到访日期<input v-model="appointmentForm.visitDate" type="date" /></label><label>预约时段<select v-model="appointmentForm.timeSlot"><option>09:00-11:00</option><option>10:00-11:30</option><option>14:00-16:00</option><option>09:00-18:00</option></select></label><label>访问区域<select v-model="appointmentForm.accessArea"><option>A座会议中心</option><option>A座会客区</option><option>B座工程区</option><option>受限区-数据中心</option></select></label><label>来访人数<input v-model="appointmentForm.visitorCount" type="number" min="1" max="200" /></label></div><div class="form-note">受限区域、夜间访问或多人来访会自动进入风险复核流程。</div><div class="modal-actions"><span></span><button class="outline" @click="modal=''">取消</button><button class="primary" @click="createAppointment">提交预约</button></div></section>
+      <section v-else-if="modal==='appointment'" class="modal form-modal"><div class="modal-head"><div><small>NEW APPOINTMENT</small><h2>新建访客预约</h2></div><button @click="modal=''">×</button></div><div class="form-grid"><label>访客姓名<input v-model="appointmentForm.visitorName" placeholder="请输入姓名" /></label><label>手机号码<input v-model="appointmentForm.visitorPhone" placeholder="用于签到核验" /></label><label>访客单位<input v-model="appointmentForm.visitorCompany" placeholder="公司或组织名称" /></label><label>接待人<input v-model="appointmentForm.hostName" placeholder="内部接待人员" /></label><label class="full">来访事由<input v-model="appointmentForm.purpose" placeholder="请准确填写来访目的" /></label><label>预约园区<select v-model="appointmentForm.siteCode"><option v-for="item in sites.filter(v=>v.status==='启用')" :key="item.siteCode" :value="item.siteCode">{{ item.siteName }} · {{ item.siteCode }}</option></select></label><label>到访日期<input v-model="appointmentForm.visitDate" type="date" /></label><label>预约时段<select v-model="appointmentForm.timeSlot"><option>09:00-11:00</option><option>10:00-11:30</option><option>14:00-16:00</option><option>09:00-18:00</option></select></label><label>访问区域<select v-model="appointmentForm.accessArea"><option>A座会议中心</option><option>A座会客区</option><option>B座工程区</option><option>受限区-数据中心</option></select></label><label>来访人数<input v-model="appointmentForm.visitorCount" type="number" min="1" max="200" /></label></div><div class="form-note">受限区域、施工维保或多人来访会自动进入风险复核；最终安保放行前必须完成所需材料与承包商资质校验。</div><div class="modal-actions"><span></span><button class="outline" @click="modal=''">取消</button><button class="primary" @click="createAppointment">提交预约</button></div></section>
       <section v-else class="modal form-modal"><div class="modal-head"><div><small>INCIDENT REPORT</small><h2>上报现场异常</h2></div><button @click="modal=''">×</button></div><div class="form-grid"><label>异常类型<select v-model="exceptionForm.type"><option>现场异常</option><option>超时未离场</option><option>通行异常</option><option>证件异常</option></select></label><label>风险等级<select v-model="exceptionForm.level"><option>低</option><option>中</option><option>高</option></select></label><label class="full">异常说明<input v-model="exceptionForm.title" placeholder="说明时间、地点和具体情况" /></label><label>关联预约<input v-model="exceptionForm.relatedNo" placeholder="VMS-..." /></label><label>处理责任人<input v-model="exceptionForm.assignee" /></label></div><div class="modal-actions"><span></span><button class="outline" @click="modal=''">取消</button><button class="primary" @click="reportException">确认上报</button></div></section>
     </div>
     <div v-if="toast" class="toast"><span>✓</span>{{ toast }}</div>

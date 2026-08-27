@@ -192,6 +192,12 @@ class VmsApiIntegrationTests {
                 .contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"APPROVE\",\"remark\":\"越权安保复核\"}"))
             .andExpect(status().isForbidden());
         mvc.perform(post("/api/vms/appointments/{id}/actions", id).with(httpBasic("admin", "admin123"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"APPROVE\",\"remark\":\"材料缺失时不得放行\"}"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("合规校验未通过")));
+        submitAndApproveDocument(id, "身份证明", "restricted-identity.pdf", "b".repeat(64));
+        submitAndApproveDocument(id, "安全承诺书", "restricted-safety.pdf", "c".repeat(64));
+        mvc.perform(post("/api/vms/appointments/{id}/actions", id).with(httpBasic("admin", "admin123"))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"APPROVE\",\"remark\":\"安保复核通过\"}"))
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("已审批"))
             .andExpect(jsonPath("$.data.passCode").isNotEmpty());
@@ -304,5 +310,81 @@ class VmsApiIntegrationTests {
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.action").value(org.hamcrest.Matchers.containsString("不自动删除")));
         mvc.perform(get("/api/admin/vms/field-dashboard").with(httpBasic("operator", "operator123")))
             .andExpect(status().isForbidden());
+    }
+
+    @Test void multiSiteContractorComplianceMusterAndExportAreEnterpriseReady() throws Exception {
+        mvc.perform(get("/api/vms/sites").with(httpBasic("operator", "operator123")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(org.hamcrest.Matchers.greaterThanOrEqualTo(2)));
+        mvc.perform(post("/api/admin/vms/sites").with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                    {"siteCode":"HZ-FAC","siteName":"杭州制造基地","address":"杭州市测试地址",
+                    "timezone":"Asia/Shanghai","slotCapacity":20,"assemblyPoint":"厂区东门集合点","status":"启用"}
+                    """))
+            .andExpect(status().isForbidden());
+        mvc.perform(post("/api/admin/vms/sites").with(httpBasic("admin", "admin123"))
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                    {"siteCode":"HZ-FAC","siteName":"杭州制造基地","address":"杭州市测试地址",
+                    "timezone":"Asia/Shanghai","slotCapacity":20,"assemblyPoint":"厂区东门集合点","status":"启用"}
+                    """))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.siteCode").value("HZ-FAC"));
+        mvc.perform(post("/api/admin/vms/contractor-credentials").with(httpBasic("admin", "admin123"))
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                    {"companyName":"企业合规测试工程有限公司","credentialType":"施工服务资质",
+                    "credentialNo":"CERT-TEST-2026-001","validUntil":"2027-12-31",
+                    "safetyTrainingCompleted":true,"status":"有效"}
+                    """))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("有效"));
+
+        var created = mvc.perform(post("/api/vms/appointments").with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                    {"visitorName":"承包商测试访客","visitorCompany":"企业合规测试工程有限公司","visitorPhone":"13812340008",
+                    "hostName":"徐亮","purpose":"受限区设备施工","visitDate":"2026-09-09",
+                    "timeSlot":"09:00-11:00","accessArea":"受限区-数据中心","visitorCount":3,
+                    "clientRequestId":"TEST-COMPLIANCE-001","siteCode":"HZ-FAC"}
+                    """))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.siteCode").value("HZ-FAC")).andReturn();
+        var matcher = java.util.regex.Pattern.compile("\\\"id\\\":(\\d+)")
+            .matcher(created.getResponse().getContentAsString());
+        org.junit.jupiter.api.Assertions.assertTrue(matcher.find());
+        long id = Long.parseLong(matcher.group(1));
+        mvc.perform(post("/api/vms/appointments/{id}/actions", id).with(httpBasic("operator", "operator123"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"APPROVE\",\"remark\":\"接待人确认\"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("安保复核"));
+        submitAndApproveDocument(id, "身份证明", "contractor-identity.pdf", "d".repeat(64));
+        submitAndApproveDocument(id, "安全承诺书", "contractor-safety.pdf", "e".repeat(64));
+        submitAndApproveDocument(id, "作业人员清单", "contractor-roster.xlsx", "f".repeat(64));
+        mvc.perform(get("/api/vms/appointments/{id}/compliance", id).with(httpBasic("operator", "operator123")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.ready").value(true))
+            .andExpect(jsonPath("$.data.contractorWork").value(true));
+        mvc.perform(post("/api/vms/appointments/{id}/actions", id).with(httpBasic("admin", "admin123"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"APPROVE\",\"remark\":\"资质和材料均通过\"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("已审批"));
+
+        mvc.perform(get("/api/admin/vms/emergency/muster?siteCode=SH-HQ").with(httpBasic("admin", "admin123")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.assemblyPoint").isNotEmpty())
+            .andExpect(jsonPath("$.data.people").isArray());
+        mvc.perform(get("/api/admin/vms/exports/appointments?siteCode=HZ-FAC&from=2026-09-01&to=2026-09-30")
+                .with(httpBasic("admin", "admin123")))
+            .andExpect(status().isOk()).andExpect(content().contentTypeCompatibleWith("text/csv"))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("承包商测试访客")));
+        mvc.perform(get("/api/admin/vms/exports/appointments?siteCode=HZ-FAC&from=2026-09-01&to=2026-09-30")
+                .with(httpBasic("operator", "operator123")))
+            .andExpect(status().isForbidden());
+    }
+
+    private long submitAndApproveDocument(long appointmentId, String type, String fileName, String checksum) throws Exception {
+        var submitted = mvc.perform(post("/api/vms/appointments/{id}/documents", appointmentId)
+                .with(httpBasic("operator", "operator123")).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"documentType\":\"" + type + "\",\"fileName\":\"" + fileName
+                    + "\",\"checksum\":\"" + checksum + "\"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("待审核"))
+            .andReturn().getResponse().getContentAsString();
+        var matcher = java.util.regex.Pattern.compile("\\\"id\\\":(\\d+)").matcher(submitted);
+        org.junit.jupiter.api.Assertions.assertTrue(matcher.find());
+        long documentId = Long.parseLong(matcher.group(1));
+        mvc.perform(post("/api/admin/vms/documents/{id}/review", documentId).with(httpBasic("admin", "admin123"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"approved\":true,\"comment\":\"测试审核通过\"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("已通过"));
+        return documentId;
     }
 }
