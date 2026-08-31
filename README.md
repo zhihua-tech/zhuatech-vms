@@ -1,5 +1,9 @@
 # ZhuaTech VMS · 访客预约与通行管理
 
+## 企业级访客与承包商通行治理
+
+新增身份、接待人、安全培训、承包商资质、受限区域和陪同策略检查，详见 [通行治理](docs/ENTERPRISE_ACCESS_GOVERNANCE.md)。
+
 > 知华科技（上海如静知华信息科技有限公司）发布的访客管理社区源码项目。官网：[https://www.zhuatech.cn/](https://www.zhuatech.cn/)
 
 ![VMS 园区接待管理端](docs/images/vms-reception-dashboard.png)
