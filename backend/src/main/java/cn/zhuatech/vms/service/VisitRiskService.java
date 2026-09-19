@@ -8,8 +8,14 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+ */
 @Service
 public class VisitRiskService {
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public VisitDecision assess(VisitRequest request) {
         int riskScore = Math.min(20, Math.max(0, request.visitorCount() - 5) * 2)
             + (request.afterHours() ? 20 : 0)
@@ -30,9 +36,15 @@ public class VisitRiskService {
         return new VisitDecision(riskScore, decision, controls);
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record VisitRequest(@NotNull @Min(1) @Max(200) Integer visitorCount,
         @NotNull Boolean afterHours, @NotNull Boolean restrictedArea,
         @NotNull Boolean hostConfirmed, @NotNull Boolean identityVerified,
         @NotNull Boolean blacklistHit) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record VisitDecision(int riskScore, String decision, List<String> controls) {}
 }

@@ -17,11 +17,20 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
+/**
+ * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+ */
 @Configuration
 public class SecurityConfig {
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Bean
     PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Bean
     UserDetailsService users(PasswordEncoder encoder,
             @Value("${app.security.admin-password}") String adminPassword,
@@ -32,6 +41,9 @@ public class SecurityConfig {
         );
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Bean
     SecurityFilterChain security(HttpSecurity http) throws Exception {
         return http.csrf(csrf -> csrf.disable()).cors(Customizer.withDefaults())
@@ -42,6 +54,9 @@ public class SecurityConfig {
             .httpBasic(Customizer.withDefaults()).build();
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         var config = new CorsConfiguration();

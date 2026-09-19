@@ -8,8 +8,14 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+ */
 @Service
 public class EvacuationAccountabilityService {
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public Result reconcile(Request request) {
         int visitorsOnSite = Math.max(0, request.checkedInVisitors() - request.badgedOutVisitors());
         int accounted = Math.min(visitorsOnSite, request.musteredVisitors() + request.hostConfirmedVisitors());
@@ -24,10 +30,16 @@ public class EvacuationAccountabilityService {
             decision, actions);
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record Request(@NotBlank String siteCode, @Min(0) int checkedInVisitors,
                           @Min(0) int badgedOutVisitors, @Min(0) int musteredVisitors,
                           @Min(0) int hostConfirmedVisitors, boolean emergencyActive) {}
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record Result(String siteCode, int visitorsOnSite, int accountedVisitors,
                          int unaccountedVisitors, String decision, List<String> actions) {}
 }

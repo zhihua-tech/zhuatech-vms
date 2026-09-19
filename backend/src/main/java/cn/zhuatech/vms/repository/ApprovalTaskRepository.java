@@ -7,10 +7,28 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+ */
 public interface ApprovalTaskRepository extends JpaRepository<ApprovalTask, Long> {
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     List<ApprovalTask> findAllByOrderByCreatedAtDesc();
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     List<ApprovalTask> findByAppointmentNoOrderByCreatedAtAsc(String appointmentNo);
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     Optional<ApprovalTask> findFirstByAppointmentNoAndStatusOrderByCreatedAtAsc(String appointmentNo, String status);
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     long countByStatus(String status);
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     long countByStatusAndDueAtBefore(String status, LocalDateTime dueAt);
 }

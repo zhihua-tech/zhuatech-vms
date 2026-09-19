@@ -32,8 +32,14 @@ import org.springframework.context.annotation.Configuration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+ */
 @Configuration
 public class DataInitializer {
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Bean
     CommandLineRunner seedData(WorkItemRepository repository, DomainCatalog catalog) {
         return args -> {
@@ -45,6 +51,9 @@ public class DataInitializer {
         };
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Bean
     CommandLineRunner seedVms(AppointmentRepository appointments, VisitorProfileRepository visitors,
                               SiteResourceRepository resources, RiskAlertRepository alerts,

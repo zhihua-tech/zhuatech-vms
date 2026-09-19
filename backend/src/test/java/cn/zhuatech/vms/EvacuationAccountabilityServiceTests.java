@@ -6,9 +6,15 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+/**
+ * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+ */
 class EvacuationAccountabilityServiceTests {
     private final EvacuationAccountabilityService service = new EvacuationAccountabilityService();
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Test
     void locatesUnaccountedVisitorsDuringEmergency() {
         var result = service.reconcile(new EvacuationAccountabilityService.Request(
@@ -19,6 +25,9 @@ class EvacuationAccountabilityServiceTests {
         assertEquals("LOCATE_NOW", result.decision());
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Test
     void clearsFullyAccountedSite() {
         var result = service.reconcile(new EvacuationAccountabilityService.Request(

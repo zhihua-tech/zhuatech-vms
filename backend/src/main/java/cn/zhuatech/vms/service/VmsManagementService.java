@@ -21,6 +21,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+ */
 @Service
 public class VmsManagementService {
     private final AppointmentRepository appointments;
@@ -33,6 +36,9 @@ public class VmsManagementService {
     private final NotificationTaskRepository notificationTasks;
     private final EnterpriseComplianceService compliance;
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public VmsManagementService(AppointmentRepository appointments, VisitorProfileRepository visitors,
                                 SiteResourceRepository resources, RiskAlertRepository alerts,
                                 SystemSettingRepository settingRepository, AuditLogRepository auditLogs,
@@ -49,14 +55,23 @@ public class VmsManagementService {
         this.compliance = compliance;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public Overview overview() {
         return new Overview(appointments.count(), appointments.countByStatus("待审批") + appointments.countByStatus("安保复核"),
             appointments.countByStatus("已到访"), appointments.countByStatus("已离场"),
             alerts.countByStatus("待处理"), appointments.findAllByOrderByUpdatedAtDesc().stream().limit(6).toList());
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public List<Appointment> listAppointments() { return appointments.findAllByOrderByUpdatedAtDesc(); }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public Appointment createAppointment(AppointmentRequest request) {
         if (request.clientRequestId() != null && !request.clientRequestId().isBlank()) {
@@ -83,6 +98,9 @@ public class VmsManagementService {
         return appointment;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public BatchResult createAppointments(BatchAppointmentRequest request) {
         var result = new ArrayList<Appointment>();
@@ -91,6 +109,9 @@ public class VmsManagementService {
         return new BatchResult(result.size(), result);
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public Appointment updateAppointment(Long id, AppointmentRequest request) {
         Appointment appointment = appointment(id);
@@ -115,6 +136,9 @@ public class VmsManagementService {
         return appointment;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public Appointment action(Long id, ActionRequest request) {
         Appointment appointment = appointment(id);
@@ -150,6 +174,9 @@ public class VmsManagementService {
         return appointment;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public PassVerification verifyPass(PassRequest request) {
         Appointment appointment = appointments.findByAppointmentNo(request.credential())
             .or(() -> appointments.findByPassCode(request.credential()))
@@ -164,12 +191,21 @@ public class VmsManagementService {
         return new PassVerification(valid, message, appointment);
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public List<VisitorProfile> listVisitors() { return visitors.findAllByOrderByLastVisitAtDesc(); }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public List<ApprovalTask> listApprovalTasks() {
         return approvalTasks == null ? List.of() : approvalTasks.findAllByOrderByCreatedAtDesc();
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public ApprovalBoard approvalBoard() {
         if (approvalTasks == null) return new ApprovalBoard(0, 0, 0, 0, List.of());
         long pending = approvalTasks.countByStatus("待处理");
@@ -182,6 +218,9 @@ public class VmsManagementService {
             approvalTasks.findAllByOrderByCreatedAtDesc().stream().limit(50).toList());
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public InspectionResult inspectOverstay() {
         int inspected = 0;
@@ -203,6 +242,9 @@ public class VmsManagementService {
         return new InspectionResult(inspected, generated, now);
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public VisitorProfile setBlacklist(Long id, BlacklistRequest request) {
         VisitorProfile visitor = visitor(id);
@@ -211,6 +253,9 @@ public class VmsManagementService {
         return visitor;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public VisitorProfile verifyIdentity(Long id, IdentityRequest request) {
         VisitorProfile visitor = visitor(id);
@@ -219,8 +264,14 @@ public class VmsManagementService {
         return visitor;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public List<SiteResource> listResources() { return resources.findAllByOrderByTypeAscNameAsc(); }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public SiteResource createResource(ResourceRequest request) {
         if (resources.existsByCode(request.code()))
@@ -231,6 +282,9 @@ public class VmsManagementService {
         return resource;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public SiteResource updateResource(Long id, ResourceRequest request) {
         SiteResource resource = resource(id);
@@ -239,6 +293,9 @@ public class VmsManagementService {
         return resource;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public void deleteResource(Long id) {
         SiteResource resource = resource(id);
@@ -246,8 +303,14 @@ public class VmsManagementService {
         audit("资源中心", "删除资源", resource.getCode(), resource.getName());
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public List<RiskAlert> listAlerts() { return alerts.findAllByOrderByCreatedAtDesc(); }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public RiskAlert reportException(ExceptionRequest request) {
         String no = uniqueNo("ALT");
@@ -257,6 +320,9 @@ public class VmsManagementService {
         return alert;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public RiskAlert resolveAlert(Long id, ResolveRequest request) {
         RiskAlert alert = alerts.findById(id)
@@ -266,12 +332,18 @@ public class VmsManagementService {
         return alert;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public Map<String, String> settings() {
         var result = new LinkedHashMap<String, String>();
         settingRepository.findAll().forEach(item -> result.put(item.getKey(), item.getValue()));
         return result;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public Map<String, String> updateSettings(SettingsRequest request) {
         saveSetting("siteName", request.siteName());
@@ -285,6 +357,9 @@ public class VmsManagementService {
         return settings();
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public OperationsReport report() {
         Map<String, Long> appointmentStatus = new LinkedHashMap<>();
         for (String status : List.of("待审批", "安保复核", "已审批", "已到访", "已离场", "已驳回", "已取消"))
@@ -294,18 +369,30 @@ public class VmsManagementService {
             alerts.countByStatus("待处理"), resources.count(), resources.countByStatusIn(List.of("启用", "开放", "审批开放", "在线")));
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public List<AuditLog> auditLogs() { return auditLogs.findTop100ByOrderByOccurredAtDesc(); }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private void saveSetting(String key, String value) {
         SystemSetting setting = settingRepository.findById(key).orElseGet(() -> new SystemSetting(key, value));
         setting.changeValue(value);
         settingRepository.save(setting);
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private void queueNotification(String referenceNo, String recipient, String templateCode) {
         String channel = settingRepository.findById("notificationChannel")
             .map(SystemSetting::getValue).orElse("站内消息");
         notificationTasks.save(new NotificationTask(referenceNo, channel, recipient, templateCode));
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private void enforceCapacity(AppointmentRequest request) {
         String siteCode = request.siteCode() == null || request.siteCode().isBlank() ? "SH-HQ" : request.siteCode();
         long occupied = appointments.activeVisitorCount(siteCode, request.visitDate(), request.timeSlot(),
@@ -314,6 +401,9 @@ public class VmsManagementService {
         if (occupied + request.visitorCount() > capacity) throw new ResponseStatusException(HttpStatus.CONFLICT,
             "该预约时段园区容量不足：已预约 " + occupied + " 人，容量上限 " + capacity + " 人");
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private void enforceCapacityForUpdate(Appointment current, AppointmentRequest request) {
         String siteCode = request.siteCode() == null || request.siteCode().isBlank() ? "SH-HQ" : request.siteCode();
         long occupied = appointments.activeVisitorCount(siteCode, request.visitDate(), request.timeSlot(),
@@ -325,15 +415,24 @@ public class VmsManagementService {
         if (occupied + request.visitorCount() > capacity) throw new ResponseStatusException(HttpStatus.CONFLICT,
             "修改后超过该时段容量上限 " + capacity + " 人");
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private int settingInt(String key, int fallback) {
         try { return Integer.parseInt(settingRepository.findById(key).map(SystemSetting::getValue).orElse(String.valueOf(fallback))); }
         catch (NumberFormatException ignored) { return fallback; }
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private void createApprovalTask(Appointment appointment, String stage, String assignee) {
         if (approvalTasks == null) return;
         approvalTasks.save(new ApprovalTask(appointment.getAppointmentNo(), stage, assignee,
             LocalDateTime.now().plusHours(settingInt("approvalSlaHours", 4))));
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private void approve(Appointment appointment, String remark) {
         if (!List.of("待审批", "安保复核").contains(appointment.getStatus()))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "当前状态不允许审批");
@@ -353,6 +452,9 @@ public class VmsManagementService {
         appointment.moveApprovalStage("审批完成");
         appointment.issuePass(generatePass());
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private void reject(Appointment appointment, String remark) {
         if (!List.of("待审批", "安保复核").contains(appointment.getStatus()))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "当前状态不允许驳回");
@@ -363,24 +465,39 @@ public class VmsManagementService {
         appointment.transition("已驳回");
         appointment.moveApprovalStage("审批终止");
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private ApprovalTask pendingApproval(Appointment appointment) {
         return approvalTasks == null ? null : approvalTasks
             .findFirstByAppointmentNoAndStatusOrderByCreatedAtAsc(appointment.getAppointmentNo(), "待处理")
             .orElse(null);
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private void cancelPendingApproval(Appointment appointment, String reason) {
         ApprovalTask task = pendingApproval(appointment);
         if (task != null) task.cancel(operator(), reason);
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private String operator() {
         return SecurityContextHolder.getContext().getAuthentication() == null ? "system"
             : SecurityContextHolder.getContext().getAuthentication().getName();
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private boolean isAdmin() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication != null && authentication.getAuthorities().stream()
             .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private LocalDateTime expectedCheckout(Appointment appointment) {
         try {
             String end = appointment.getTimeSlot().split("-")[1].trim();
@@ -389,52 +506,124 @@ public class VmsManagementService {
             return LocalDateTime.of(appointment.getVisitDate(), LocalTime.of(18, 0));
         }
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private Appointment appointment(Long id) { return appointments.findById(id)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "预约记录不存在")); }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private VisitorProfile visitor(Long id) { return visitors.findById(id)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "访客档案不存在")); }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private SiteResource resource(Long id) { return resources.findById(id)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "园区资源不存在")); }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private void requireStatus(Appointment appointment, String expected) {
         if (!expected.equals(appointment.getStatus())) throw new ResponseStatusException(HttpStatus.CONFLICT,
             "预约状态应为“" + expected + "”，当前为“" + appointment.getStatus() + "”");
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private String uniqueNo(String prefix) { return prefix + "-" + LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
         + "-" + ThreadLocalRandom.current().nextInt(100000, 1000000); }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private String generatePass() { return String.valueOf(ThreadLocalRandom.current().nextInt(100000, 1000000)); }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private String safeRemark(String remark) { return remark == null || remark.isBlank() ? "未填写备注" : remark; }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private void audit(String module, String action, String businessNo, String detail) {
         auditLogs.save(new AuditLog(module, action, businessNo, operator(), detail));
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record Overview(long totalAppointments, long pendingApproval, long visitorsOnSite,
                            long departed, long openAlerts, List<Appointment> recentAppointments) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record PassVerification(boolean valid, String message, Appointment appointment) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record BatchResult(int processed, List<Appointment> appointments) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record ApprovalBoard(long pending, long overdue, long securityReview, long highRisk,
                                 List<ApprovalTask> recentTasks) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record InspectionResult(int inspected, int alertsGenerated, LocalDateTime inspectedAt) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record OperationsReport(long totalAppointments, Map<String, Long> appointmentStatus,
         long totalVisitors, long unverifiedVisitors, long blacklistedVisitors, long totalAlerts,
         long openAlerts, long totalResources, long availableResources) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record AppointmentRequest(@NotBlank @Size(max = 40) String visitorName,
         @NotBlank @Size(max = 80) String visitorCompany, @NotBlank @Size(max = 30) String visitorPhone,
         @NotBlank @Size(max = 40) String hostName, @NotBlank @Size(max = 120) String purpose,
         @NotNull LocalDate visitDate, @NotBlank @Size(max = 40) String timeSlot,
         @NotBlank @Size(max = 60) String accessArea, @Min(1) @Max(200) int visitorCount,
         @Size(max = 64) String clientRequestId, @Size(max = 32) String siteCode) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record BatchAppointmentRequest(@NotEmpty @Size(max = 50)
         List<@Valid AppointmentRequest> appointments) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record ActionRequest(@NotBlank String action, @Size(max = 200) String remark) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record PassRequest(@NotBlank @Size(max = 40) String credential) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record BlacklistRequest(boolean blacklisted, @NotBlank @Size(max = 200) String reason) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record IdentityRequest(boolean verified, @NotBlank @Size(max = 200) String note) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record ResourceRequest(@NotBlank @Size(max = 20) String type, @NotBlank @Size(max = 40) String code,
         @NotBlank @Size(max = 80) String name, @NotBlank @Size(max = 80) String department,
         @NotBlank @Size(max = 20) String status) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record ExceptionRequest(@NotBlank String type, @NotBlank String level,
         @NotBlank @Size(max = 120) String title, @NotBlank String relatedNo, @NotBlank String assignee) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record ResolveRequest(@NotBlank @Size(max = 200) String resolution) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record SettingsRequest(@NotBlank String siteName, @NotBlank String approvalMode,
         @NotBlank String passValidity, @Min(30) @Max(3650) int retentionDays,
         @NotBlank String notificationChannel, @Min(1) @Max(10000) Integer slotCapacity,

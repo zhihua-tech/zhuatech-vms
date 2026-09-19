@@ -4,7 +4,16 @@ import cn.zhuatech.vms.model.AuditLog;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.time.LocalDateTime;
+/**
+ * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+ */
 public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     List<AuditLog> findTop100ByOrderByOccurredAtDesc();
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     long countByOccurredAtBefore(LocalDateTime threshold);
 }

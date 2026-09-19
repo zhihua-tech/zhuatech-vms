@@ -4,8 +4,20 @@ import cn.zhuatech.vms.model.EnterpriseSite;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
+/**
+ * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+ */
 public interface EnterpriseSiteRepository extends JpaRepository<EnterpriseSite, Long> {
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     List<EnterpriseSite> findAllByOrderBySiteCodeAsc();
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     Optional<EnterpriseSite> findBySiteCode(String siteCode);
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     boolean existsBySiteCode(String siteCode);
 }

@@ -5,8 +5,14 @@ import jakarta.validation.constraints.NotBlank;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
+/**
+ * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+ */
 @Service
 public class VisitorAccessGovernanceService {
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public Result evaluate(Request request) {
         List<String> controls = new ArrayList<>();
         if (!request.identityVerified()) controls.add("访客身份未核验");
@@ -22,15 +28,24 @@ public class VisitorAccessGovernanceService {
         return new Result(request.visitId(), decision, permittedZones,
                 List.copyOf(controls), "GRANT".equals(decision) || "ESCORT_ONLY".equals(decision));
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record Request(@NotBlank String visitId, boolean identityVerified,
                           boolean hostConfirmed, boolean safetyTrainingValid,
                           boolean contractor, boolean contractorCredentialValid,
                           @Min(0) int restrictedZonesRequested, boolean escortAssigned) {
+        /**
+         * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+         */
         public Request {
             if (visitId == null || visitId.isBlank()) throw new IllegalArgumentException("visitId is required");
             if (restrictedZonesRequested < 0) throw new IllegalArgumentException("restrictedZonesRequested must be non-negative");
         }
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record Result(String visitId, String decision, int permittedRestrictedZones,
                          List<String> controlFindings, boolean badgeIssuanceAllowed) {}
 }

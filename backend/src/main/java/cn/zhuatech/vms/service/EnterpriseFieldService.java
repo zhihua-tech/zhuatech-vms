@@ -15,6 +15,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+ */
 @Service
 public class EnterpriseFieldService {
     private final AppointmentRepository appointments;
@@ -26,6 +29,9 @@ public class EnterpriseFieldService {
     private final AuditLogRepository auditLogs;
     private final SystemSettingRepository settings;
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public EnterpriseFieldService(AppointmentRepository appointments, VisitorProfileRepository visitors,
             VisitorBadgeRepository badges, GateAccessEventRepository accessEvents,
             NotificationTaskRepository notifications, RiskAlertRepository alerts,
@@ -35,10 +41,22 @@ public class EnterpriseFieldService {
         this.auditLogs = auditLogs; this.settings = settings;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public List<VisitorBadge> badges() { return badges.findAllByOrderByBadgeNoAsc(); }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public List<GateAccessEvent> accessEvents() { return accessEvents.findTop100ByOrderByOccurredAtDesc(); }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public List<NotificationTask> notifications() { return notifications.findTop100ByOrderByCreatedAtDesc(); }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public VisitorBadge issueBadge(Long appointmentId, BadgeIssueRequest request) {
         Appointment appointment = appointment(appointmentId);
@@ -55,6 +73,9 @@ public class EnterpriseFieldService {
         return badge;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public VisitorBadge badgeAction(Long id, BadgeActionRequest request) {
         VisitorBadge badge = badges.findById(id)
@@ -77,6 +98,9 @@ public class EnterpriseFieldService {
         return badge;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public AccessDecision recordAccess(AccessRequest request) {
         Appointment appointment = appointments.findByAppointmentNo(request.appointmentNo())
@@ -107,6 +131,9 @@ public class EnterpriseFieldService {
         return new AccessDecision("允许".equals(result), reason, appointment, event);
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public DispatchResult dispatchNotifications() {
         int processed = 0, sent = 0, failed = 0;
@@ -121,6 +148,9 @@ public class EnterpriseFieldService {
         return new DispatchResult(processed, sent, failed);
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public NotificationTask retryNotification(Long id) {
         NotificationTask task = notifications.findById(id)
@@ -132,12 +162,18 @@ public class EnterpriseFieldService {
         return task;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public FieldDashboard dashboard() {
         return new FieldDashboard(badges.countByStatus("可用"), badges.countByStatus("已发放"),
             badges.countByStatus("挂失"), accessEvents.countByResult("拒绝"),
             notifications.countByStatus("待发送"), notifications.countByStatus("失败"));
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public RetentionPreview retentionPreview() {
         int retentionDays = settingInt("retentionDays", 180);
         LocalDateTime threshold = LocalDateTime.now().minusDays(retentionDays);
@@ -146,30 +182,66 @@ public class EnterpriseFieldService {
             "仅生成预检结果，不自动删除或匿名化任何数据");
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private Appointment appointment(Long id) { return appointments.findById(id)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "预约记录不存在")); }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private int settingInt(String key, int fallback) {
         try { return Integer.parseInt(settings.findById(key).map(SystemSetting::getValue).orElse(String.valueOf(fallback))); }
         catch (NumberFormatException ignored) { return fallback; }
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private String operator() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication == null ? "system" : authentication.getName();
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private String uniqueNo(String prefix) { return prefix + "-" + LocalDateTime.now()
         .format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + "-" + ThreadLocalRandom.current().nextInt(100, 1000); }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private void audit(String module, String action, String businessNo, String detail) {
         auditLogs.save(new AuditLog(module, action, businessNo, operator(), detail));
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record BadgeIssueRequest(@NotBlank @Size(max = 32) String badgeNo) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record BadgeActionRequest(@NotBlank String action, @NotBlank @Size(max = 200) String remark) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record AccessRequest(@NotBlank @Size(max = 40) String appointmentNo,
         @NotBlank @Size(max = 40) String gateCode, @Pattern(regexp = "IN|OUT") String direction) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record AccessDecision(boolean allowed, String message, Appointment appointment, GateAccessEvent event) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record DispatchResult(int processed, int sent, int failed) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record FieldDashboard(long availableBadges, long issuedBadges, long lostBadges,
         long deniedAccessEvents, long pendingNotifications, long failedNotifications) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record RetentionPreview(int retentionDays, LocalDateTime threshold, long visitorProfiles,
         long auditLogs, String action) {}
 }

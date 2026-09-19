@@ -11,16 +11,25 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+/**
+ * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 class VmsApiIntegrationTests {
     @Autowired MockMvc mvc;
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Test void publicAboutIsAccessible() throws Exception {
         mvc.perform(get("/api/public/about")).andExpect(status().isOk())
             .andExpect(jsonPath("$.data.company").value("上海如静知华信息科技有限公司"));
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Test void adminCanReadDashboardAndAssessRisk() throws Exception {
         mvc.perform(get("/api/admin/dashboard").with(httpBasic("admin", "admin123"))).andExpect(status().isOk())
             .andExpect(jsonPath("$.data.total").value(4));
@@ -29,15 +38,24 @@ class VmsApiIntegrationTests {
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.level").exists());
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Test void operatorCanUseWorkspaceButNotAdmin() throws Exception {
         mvc.perform(get("/api/workspace/tasks").with(httpBasic("operator", "operator123"))).andExpect(status().isOk());
         mvc.perform(get("/api/admin/dashboard").with(httpBasic("operator", "operator123"))).andExpect(status().isForbidden());
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Test void anonymousRequestIsRejected() throws Exception {
         mvc.perform(get("/api/workspace/tasks")).andExpect(status().isUnauthorized());
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Test void adminCanAssessVisitRisk() throws Exception {
         mvc.perform(post("/api/admin/visit-risk").with(httpBasic("admin", "admin123"))
             .contentType(MediaType.APPLICATION_JSON)
@@ -47,6 +65,9 @@ class VmsApiIntegrationTests {
             .andExpect(jsonPath("$.data.decision").value("REJECT"));
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Test void appointmentCanCompleteApprovalCheckInAndCheckOutWorkflow() throws Exception {
         var created = mvc.perform(post("/api/vms/appointments").with(httpBasic("operator", "operator123"))
                 .contentType(MediaType.APPLICATION_JSON)
@@ -75,6 +96,9 @@ class VmsApiIntegrationTests {
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("已离场"));
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Test void resourceVisitorAlertAndSettingsModulesAreAccessible() throws Exception {
         mvc.perform(get("/api/vms/overview").with(httpBasic("operator", "operator123")))
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalAppointments").isNumber());
@@ -90,6 +114,9 @@ class VmsApiIntegrationTests {
             .andExpect(status().isForbidden());
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Test void invalidAppointmentTransitionReturnsConflict() throws Exception {
         mvc.perform(post("/api/vms/appointments/1/actions").with(httpBasic("operator", "operator123"))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"CHECK_IN\",\"remark\":\"跳过审批\"}"))
@@ -97,6 +124,9 @@ class VmsApiIntegrationTests {
             .andExpect(jsonPath("$.success").value(false));
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Test void receptionCanVerifyPassAndRejectBlacklistedVisitor() throws Exception {
         mvc.perform(post("/api/vms/passes/verify").with(httpBasic("operator", "operator123"))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"credential\":\"VMS-20260826-102\"}"))
@@ -112,6 +142,9 @@ class VmsApiIntegrationTests {
             .andExpect(status().isConflict()).andExpect(jsonPath("$.success").value(false));
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Test void adminCanMaintainResourcesAndReadAuditReport() throws Exception {
         var created = mvc.perform(post("/api/admin/vms/resources").with(httpBasic("admin", "admin123"))
                 .contentType(MediaType.APPLICATION_JSON)
@@ -134,6 +167,9 @@ class VmsApiIntegrationTests {
             .andExpect(status().isOk());
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Test void identityAndSettingsChangesArePersisted() throws Exception {
         mvc.perform(post("/api/vms/visitors/4/identity").with(httpBasic("operator", "operator123"))
                 .contentType(MediaType.APPLICATION_JSON)
@@ -149,6 +185,9 @@ class VmsApiIntegrationTests {
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.retentionDays").value("365"));
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Test void clientRequestIdMakesAppointmentCreationIdempotent() throws Exception {
         String payload = """
             {"visitorName":"幂等测试访客","visitorCompany":"知华测试伙伴","visitorPhone":"13812340001",
@@ -170,6 +209,9 @@ class VmsApiIntegrationTests {
         org.junit.jupiter.api.Assertions.assertEquals(firstId.group(1), secondId.group(1));
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Test void restrictedAreaRequiresHostAndSecurityApproval() throws Exception {
         var created = mvc.perform(post("/api/vms/appointments").with(httpBasic("operator", "operator123"))
                 .contentType(MediaType.APPLICATION_JSON).content("""
@@ -203,6 +245,9 @@ class VmsApiIntegrationTests {
             .andExpect(jsonPath("$.data.passCode").isNotEmpty());
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Test void batchCapacityApprovalBoardAndOverstayInspectionWork() throws Exception {
         mvc.perform(post("/api/vms/appointments/batch").with(httpBasic("operator", "operator123"))
                 .contentType(MediaType.APPLICATION_JSON).content("""
@@ -228,6 +273,9 @@ class VmsApiIntegrationTests {
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.inspected").isNumber());
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Test void rejectedAppointmentCanBeEditedAndResubmittedWithRecalculatedRisk() throws Exception {
         var created = mvc.perform(post("/api/vms/appointments").with(httpBasic("operator", "operator123"))
                 .contentType(MediaType.APPLICATION_JSON).content("""
@@ -254,6 +302,9 @@ class VmsApiIntegrationTests {
             .andExpect(jsonPath("$.data.approvalStage").value("接待人审批"));
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Test void enterpriseFieldOperationsPreventPassbackAndCloseTheBadgeLifecycle() throws Exception {
         var created = mvc.perform(post("/api/vms/appointments").with(httpBasic("operator", "operator123"))
                 .contentType(MediaType.APPLICATION_JSON).content("""
@@ -312,6 +363,9 @@ class VmsApiIntegrationTests {
             .andExpect(status().isForbidden());
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Test void multiSiteContractorComplianceMusterAndExportAreEnterpriseReady() throws Exception {
         mvc.perform(get("/api/vms/sites").with(httpBasic("operator", "operator123")))
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(org.hamcrest.Matchers.greaterThanOrEqualTo(2)));
@@ -372,6 +426,9 @@ class VmsApiIntegrationTests {
             .andExpect(status().isForbidden());
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private long submitAndApproveDocument(long appointmentId, String type, String fileName, String checksum) throws Exception {
         var submitted = mvc.perform(post("/api/vms/appointments/{id}/documents", appointmentId)
                 .with(httpBasic("operator", "operator123")).contentType(MediaType.APPLICATION_JSON)

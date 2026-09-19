@@ -15,6 +15,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+ */
 @Service
 public class EnterpriseComplianceService {
     private final EnterpriseSiteRepository sites;
@@ -25,6 +28,9 @@ public class EnterpriseComplianceService {
     private final GateAccessEventRepository accessEvents;
     private final AuditLogRepository auditLogs;
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public EnterpriseComplianceService(EnterpriseSiteRepository sites,
             ContractorCredentialRepository credentials, AppointmentDocumentRepository documents,
             AppointmentRepository appointments, VisitorBadgeRepository badges,
@@ -34,8 +40,14 @@ public class EnterpriseComplianceService {
         this.accessEvents = accessEvents; this.auditLogs = auditLogs;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public List<EnterpriseSite> sites() { return sites.findAllByOrderBySiteCodeAsc(); }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public EnterpriseSite createSite(SiteRequest request) {
         if (sites.existsBySiteCode(request.siteCode()))
@@ -46,6 +58,9 @@ public class EnterpriseComplianceService {
         return site;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public EnterpriseSite updateSite(Long id, SiteRequest request) {
         EnterpriseSite site = sites.findById(id)
@@ -58,6 +73,9 @@ public class EnterpriseComplianceService {
         return site;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public EnterpriseSite requireActiveSite(String siteCode) {
         String normalized = siteCode == null || siteCode.isBlank() ? "SH-HQ" : siteCode;
         EnterpriseSite site = sites.findBySiteCode(normalized)
@@ -67,8 +85,14 @@ public class EnterpriseComplianceService {
         return site;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public List<ContractorCredential> credentials() { return credentials.findAllByOrderByCompanyNameAsc(); }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public ContractorCredential createCredential(CredentialRequest request) {
         if (credentials.existsByCredentialNo(request.credentialNo()))
@@ -80,6 +104,9 @@ public class EnterpriseComplianceService {
         return credential;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public ContractorCredential updateCredential(Long id, CredentialRequest request) {
         ContractorCredential credential = credentials.findById(id)
@@ -92,10 +119,16 @@ public class EnterpriseComplianceService {
         return credential;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public List<AppointmentDocument> documents(Long appointmentId) {
         return documents.findByAppointmentNoOrderBySubmittedAtAsc(appointment(appointmentId).getAppointmentNo());
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public AppointmentDocument submitDocument(Long appointmentId, DocumentRequest request) {
         Appointment appointment = appointment(appointmentId);
@@ -115,6 +148,9 @@ public class EnterpriseComplianceService {
         return document;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @Transactional
     public AppointmentDocument reviewDocument(Long id, ReviewRequest request) {
         AppointmentDocument document = documents.findById(id)
@@ -127,8 +163,14 @@ public class EnterpriseComplianceService {
         return document;
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public ComplianceAssessment assess(Long appointmentId) { return assess(appointment(appointmentId)); }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public ComplianceAssessment assess(Appointment appointment) {
         List<String> required = new ArrayList<>();
         List<String> blockers = new ArrayList<>();
@@ -156,12 +198,18 @@ public class EnterpriseComplianceService {
             submitted, blockers.isEmpty() ? "材料与资质校验通过" : "存在 " + blockers.size() + " 项准入阻断");
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public void requireReadyForSecurityApproval(Appointment appointment) {
         ComplianceAssessment result = assess(appointment);
         if (!result.ready()) throw new ResponseStatusException(HttpStatus.CONFLICT,
             "合规校验未通过：" + String.join("；", result.blockers()));
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public MusterSnapshot muster(String siteCode) {
         EnterpriseSite site = requireActiveSite(siteCode);
         List<MusterPerson> people = appointments
@@ -177,6 +225,9 @@ public class EnterpriseComplianceService {
             visitorsOnSite, people.size(), LocalDateTime.now(), people);
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public String exportAppointments(String siteCode, LocalDate from, LocalDate to) {
         requireActiveSite(siteCode);
         if (from.isAfter(to) || from.plusYears(1).isBefore(to))
@@ -191,11 +242,20 @@ public class EnterpriseComplianceService {
         return csv.toString();
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private Appointment appointment(Long id) { return appointments.findById(id)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "预约记录不存在")); }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private boolean isContractorWork(String purpose) {
         return purpose.contains("施工") || purpose.contains("维保") || purpose.contains("承包");
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private String row(String... values) {
         StringBuilder line = new StringBuilder();
         for (int i = 0; i < values.length; i++) {
@@ -205,31 +265,58 @@ public class EnterpriseComplianceService {
         }
         return line.append('\n').toString();
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private String operator() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication == null ? "system" : authentication.getName();
     }
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     private void audit(String module, String action, String businessNo, String detail) {
         auditLogs.save(new AuditLog(module, action, businessNo, operator(), detail));
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record SiteRequest(@NotBlank @Size(max = 32) String siteCode,
         @NotBlank @Size(max = 80) String siteName, @NotBlank @Size(max = 160) String address,
         @NotBlank @Size(max = 40) String timezone, @Min(1) @Max(10000) int slotCapacity,
         @NotBlank @Size(max = 80) String assemblyPoint,
         @Pattern(regexp = "启用|停用") String status) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record CredentialRequest(@NotBlank @Size(max = 100) String companyName,
         @NotBlank @Size(max = 40) String credentialType,
         @NotBlank @Size(max = 60) String credentialNo, @NotNull LocalDate validUntil,
         boolean safetyTrainingCompleted, @Pattern(regexp = "有效|冻结") String status) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record DocumentRequest(@NotBlank @Size(max = 40) String documentType,
         @NotBlank @Size(max = 120) String fileName,
         @Pattern(regexp = "[a-fA-F0-9]{64}") String checksum) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record ReviewRequest(boolean approved, @NotBlank @Size(max = 200) String comment) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record ComplianceAssessment(boolean ready, boolean contractorWork, List<String> requiredDocuments,
         List<String> blockers, List<AppointmentDocument> documents, String conclusion) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record MusterPerson(String appointmentNo, String visitorName, String visitorCompany,
         String hostName, int visitorCount, String badgeNo, String lastGate, LocalDateTime checkedInAt) {}
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     public record MusterSnapshot(String siteCode, String siteName, String assemblyPoint,
         int visitorsOnSite, int appointmentCount, LocalDateTime generatedAt, List<MusterPerson> people) {}
 }

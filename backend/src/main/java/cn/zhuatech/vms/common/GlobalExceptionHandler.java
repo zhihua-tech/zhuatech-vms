@@ -7,8 +7,14 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+/**
+ * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<ApiResponse<Void>> validation(MethodArgumentNotValidException exception) {
         var fieldError = exception.getBindingResult().getFieldErrors().stream().findFirst();
@@ -16,6 +22,9 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ApiResponse.error(message));
     }
 
+    /**
+     * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
+     */
     @ExceptionHandler(ResponseStatusException.class)
     ResponseEntity<ApiResponse<Void>> business(ResponseStatusException exception) {
         return ResponseEntity.status(exception.getStatusCode())
