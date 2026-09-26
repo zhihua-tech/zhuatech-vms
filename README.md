@@ -114,3 +114,7 @@ curl -u admin:admin123 -H 'Content-Type: application/json' \
 ## 应急疏散访客清点
 
 新增 `POST /api/vms/insights/evacuation-accountability`，根据已入场、已离场、集合点签到和接待人确认人数计算在场及未清点访客，输出 `CLEAR / RECONCILE / LOCATE_NOW`。紧急状态下可直接生成联系接待人、核对最后门禁位置和现场查找动作。
+
+## 访客身份核验治理
+
+新增 `POST /api/enterprise/vms/visitor-identity-verification`，在放行前联合验证预约、证件、人证比对、被访人、隐私同意与关注名单，并对限制区域和未成年访客执行专项控制。详见 [访客身份核验治理](docs/ENTERPRISE_VISITOR_IDENTITY_VERIFICATION.md)。
