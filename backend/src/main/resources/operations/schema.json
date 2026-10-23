@@ -1,0 +1,85 @@
+{
+  "slug": "vms",
+  "title": "团体访客随行比例与通行证缺口",
+  "fields": [
+    {
+      "key": "id",
+      "label": "记录编号",
+      "type": "ID"
+    },
+    {
+      "key": "visitors",
+      "label": "本团访客人数",
+      "type": "NUMBER",
+      "scale": 0,
+      "min": "1",
+      "max": "1000000"
+    },
+    {
+      "key": "escorts",
+      "label": "授权随行人数",
+      "type": "NUMBER",
+      "scale": 0,
+      "min": "0",
+      "max": "1000000"
+    },
+    {
+      "key": "visitorsPerEscort",
+      "label": "每名可随行访客上限",
+      "type": "NUMBER",
+      "scale": 0,
+      "min": "1",
+      "max": "10000"
+    },
+    {
+      "key": "availableBadges",
+      "label": "可用临时证件数",
+      "type": "NUMBER",
+      "scale": 0,
+      "min": "0",
+      "max": "1000000"
+    },
+    {
+      "key": "authorizationEnd",
+      "label": "访问授权到期",
+      "type": "DATE"
+    }
+  ],
+  "columns": [
+    {
+      "key": "escortCapacity",
+      "label": "随行覆盖人数"
+    },
+    {
+      "key": "unescortedVisitors",
+      "label": "随行未覆盖人数"
+    },
+    {
+      "key": "badgeShortfall",
+      "label": "临时证件缺口"
+    },
+    {
+      "key": "authorizationDaysLeft",
+      "label": "授权剩余天数"
+    }
+  ],
+  "description": "核对团体访客人数、授权随行人员比例、可用临时证件及授权有效期，输出未覆盖人数，不自动授予门禁权限。",
+  "owner": "上海如静知华信息科技有限公司",
+  "website": "https://www.zhuatech.cn/",
+  "authorization": "商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。",
+  "version": 1,
+  "notes": "输入均须为已获授权的同口径数据。金额固定人民币元；比例为百分数。核算结果只用于复核，未审批、未写库、未发起外部调用，也未触发付款、签名、资料销毁或设备控制。建议不构成法律、安全、会计或碳核证结论。",
+  "sample": {
+    "asOf": "2026-10-23",
+    "records": [
+      {
+        "id": "ITEM-001",
+        "visitors": "20",
+        "escorts": "2",
+        "visitorsPerEscort": "10",
+        "availableBadges": "25",
+        "authorizationEnd": "2026-10-24"
+      }
+    ]
+  }
+}
